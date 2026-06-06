@@ -40,6 +40,25 @@ except ImportError:
     print("PyMuPDF 필요: pip install pymupdf")
     sys.exit(1)
 
+# DOI prefix / journal name mapping (external JSON)
+_SCRIPT_DIR = Path(__file__).parent
+_MAP_FILE = _SCRIPT_DIR / "doi_journal_map.json"
+
+def _load_journal_map() -> tuple:
+    """Load DOI prefix map and known journals from JSON file."""
+    if not _MAP_FILE.exists():
+        return {}, {}
+    with open(_MAP_FILE) as f:
+        data = json.load(f)
+    # Flatten nested doi_prefix_map
+    doi_map = {}
+    for category, prefixes in data.get("doi_prefix_map", {}).items():
+        doi_map.update(prefixes)
+    known = data.get("known_journals", {})
+    return doi_map, known
+
+DOI_PREFIX_MAP, KNOWN_JOURNALS = _load_journal_map()
+
 
 def extract_text(pdf_path: str, max_pages: int = 30) -> str:
     doc = fitz.open(pdf_path)
@@ -217,151 +236,25 @@ def extract_journal(text: str) -> Optional[str]:
     doi = extract_doi(text)
     doi_lower = doi.lower() if doi else ""
 
-    doi_prefix_map = {
-        # Cell Press / Elsevier
-        '10.1016/j.joca': 'OsteoarthritisCartilage',
-        '10.1016/j.mod': 'MechDev',
-        '10.1016/j.jgg': 'JGenetGenomics',
-        '10.1016/j.bonr': 'BoneRep',
-        '10.1016/j.isci': 'iScience',
-        '10.1016/j.gendis': 'GenesDis',
-        '10.1016/j.stem': 'CellStemCell',
-        '10.1016/j.devcel': 'DevCell',
-        '10.1016/j.biomaterials': 'Biomaterials',
-        # Nature Publishing
-        '10.1038/s41413': 'BoneRes',
-        '10.1038/s41586': 'Nature',
-        '10.1038/s41467': 'NatCommun',
-        '10.1038/s41597': 'SciData',
-        '10.1038/nrdp': 'NatRevDisPrimers',
-        '10.1038/s41584': 'NatRevRheumatol',
-        '10.1038/s41556': 'NatCellBiol',
-        '10.1038/s41598': 'SciRep',
-        '10.1038/s41421': 'CellDiscov',
-        '10.1038/s41422': 'CellRes',
-        '10.1038/s41419': 'CellDeathDis',
-        '10.1038/s41392': 'SignalTransductTargetTher',
-        '10.1038/s41380': 'MolPsychiatry',
-        '10.1038/s12276': 'ExpMolMed',
-        '10.1038/s41536': 'NPJRegenMed',
-        # Science / AAAS
-        '10.1126/science': 'Science',
-        '10.1126/sciadv': 'SciAdv',
-        '10.1126/scitranslmed': 'SciTranslMed',
-        # PNAS / eLife
-        '10.1073/pnas': 'PNAS',
-        '10.7554/elife': 'eLife',
-        '10.7554/eLife': 'eLife',
-        # Wiley
-        '10.1002/dvdy': 'DevDyn',
-        '10.1002/bdrc': 'BirthDefectsResC',
-        '10.1002/stem': 'StemCells',
-        '10.1002/jsp2': 'JORSpine',
-        '10.1002/jbmr': 'JBMR',
-        '10.1002/art': 'ArthritisRheumatol',
-        # Company of Biologists
-        '10.1242/dev': 'Development',
-        '10.1242/jcs': 'JCellSci',
-        '10.1242/dmm': 'DisModelMech',
-        # FASEB / FEBS
-        '10.1096/fj': 'FASEB',
-        '10.1111/febs': 'FEBSJ',
-        # ACS
-        '10.1021/acsnano': 'ACSNano',
-        '10.1021/acs.biochem': 'Biochemistry',
-        # Frontiers
-        '10.3389/fcell': 'FrontCellDevBiol',
-        '10.3389/fbioe': 'FrontBioengBiotechnol',
-        # BMC / Springer
-        '10.1186/s12891': 'BMCMusculoskeletDisord',
-        '10.1186/s13287': 'StemCellResTher',
-        '10.1186/s13075': 'ArthritisResTher',
-        '10.1186/s12964': 'CellCommunSignal',
-        # OUP / others
-        '10.1093/nar': 'NucleicAcidsRes',
-        '10.1093/hmg': 'HumMolGenet',
-        # Rheumatology
-        '10.3899/jrheum': 'JRheumatol',
-        # Sage
-        '10.1177/19476035': 'Cartilage',
-        # Spandidos
-        '10.3892/mmr': 'MolMedRep',
-        # Annual Reviews
-        '10.1146/annurev-physiol': 'AnnuRevPhysiol',
-        '10.1146/annurev.cellbio': 'AnnuRevCellDevBiol',
-        # Hindawi (generic prefix → 텍스트에서 저널명 찾아야 함)
-        '10.1155/': '__HINDAWI__',
-    }
-    for prefix, abbr in doi_prefix_map.items():
+    # DOI prefix lookup (loaded from doi_journal_map.json)
+    for prefix, abbr in DOI_PREFIX_MAP.items():
         if doi_lower.startswith(prefix):
             if abbr == '__HINDAWI__':
                 break  # fall through to text search
             return abbr
 
     # 텍스트 기반 저널명 검색 (DOI 실패 시에만, 헤더 정보에 한정)
-    # 저널명으로 확신할 수 있는 컨텍스트 단어가 함께 있을 때만 매칭
     header_keywords = ['©', 'Copyright', 'published', 'Volume', 'Vol.', 'ISSN',
                        'journal homepage', 'www.', 'wileyonlinelibrary', 'onlinelibrary']
-    known_journals = {
-        'Sci Adv': 'SciAdv',
-        'Science Advances': 'SciAdv',
-        'Science': 'Science',
-        'Scientific Data': 'SciData',
-        'Nature': 'Nature',
-        'Nature Communications': 'NatCommun',
-        'Nature Reviews Disease Primers': 'NatRevDisPrimers',
-        'Nat Rev Dis Primers': 'NatRevDisPrimers',
-        'Nucleic Acids Res': 'NucleicAcidsRes',
-        'Nucleic Acids Research': 'NucleicAcidsRes',
-        'Development': 'Development',
-        'Developmental Cell': 'DevCell',
-        'Developmental Dynamics': 'DevDyn',
-        'FASEB J': 'FASEB',
-        'FASEB Journal': 'FASEB',
-        'FEBS Journal': 'FEBSJ',
-        'Biomaterials': 'Biomaterials',
-        'Front Cell Dev Biol': 'FrontCellDevBiol',
-        'BMC Musculoskelet Disord': 'BMCMusculoskeletDisord',
-        'Mol Med Rep': 'MolMedRep',
-        'Osteoarthritis Cartilage': 'OsteoarthritisCartilage',
-        'Osteoarthritis and Cartilage': 'OsteoarthritisCartilage',
-        'Cartilage': 'Cartilage',
-        'Annu Rev Physiol': 'AnnuRevPhysiol',
-        'Annu Rev Cell Dev Biol': 'AnnuRevCellDevBiol',
-        'Birth Defects Res C': 'BirthDefectsResC',
-        'Proc Natl Acad Sci USA': 'PNAS',
-        'PNAS': 'PNAS',
-        'eLife': 'eLife',
-        'Bone Research': 'BoneRes',
-        'Bone Reports': 'BoneRep',
-        'iScience': 'iScience',
-        'Genes & Diseases': 'GenesDis',
-        'Genes Dis': 'GenesDis',
-        'Mechanisms of Development': 'MechDev',
-        'Mech Dev': 'MechDev',
-        'Journal of Genetics and Genomics': 'JGenetGenomics',
-        'J Genet Genomics': 'JGenetGenomics',
-        'JOR Spine': 'JORSpine',
-        'ACS Nano': 'ACSNano',
-        'Stem Cells': 'StemCells',
-        'Stem Cells International': 'StemCellsInt',
-        'Stem Cells Int': 'StemCellsInt',
-        'Cell Stem Cell': 'CellStemCell',
-        'Journal of Bone and Mineral Research': 'JBMR',
-        'JBMR': 'JBMR',
-    }
 
     lines = text[:3000].split('\n')
     for line in lines:
         line_lower = line.lower()
-        # 저널명 라인은 보통 헤더 문구와 함께 나타남
         has_header_context = any(kw.lower() in line_lower for kw in header_keywords)
-        for name, abbr in known_journals.items():
+        for name, abbr in KNOWN_JOURNALS.items():
             if name.lower() in line:
                 if has_header_context or 'journal' in line_lower:
                     return abbr
-                # 저널명이 일반 단어와 혼동될 가능성이 낮은 경우만 컨텍스트 없이 허용
-                # (e.g. "iScience", "eLife", "Osteoarthritis and Cartilage")
                 if len(name) > 12 and name.lower() not in ('development', 'nature', 'science'):
                     return abbr
 
