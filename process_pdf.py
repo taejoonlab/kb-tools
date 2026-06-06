@@ -236,6 +236,14 @@ def extract_journal(text: str) -> Optional[str]:
         '10.1038/nrdp': 'NatRevDisPrimers',
         '10.1038/s41584': 'NatRevRheumatol',
         '10.1038/s41556': 'NatCellBiol',
+        '10.1038/s41598': 'SciRep',
+        '10.1038/s41421': 'CellDiscov',
+        '10.1038/s41422': 'CellRes',
+        '10.1038/s41419': 'CellDeathDis',
+        '10.1038/s41392': 'SignalTransductTargetTher',
+        '10.1038/s41380': 'MolPsychiatry',
+        '10.1038/s12276': 'ExpMolMed',
+        '10.1038/s41536': 'NPJRegenMed',
         # Science / AAAS
         '10.1126/science': 'Science',
         '10.1126/sciadv': 'SciAdv',
@@ -268,9 +276,12 @@ def extract_journal(text: str) -> Optional[str]:
         '10.1186/s12891': 'BMCMusculoskeletDisord',
         '10.1186/s13287': 'StemCellResTher',
         '10.1186/s13075': 'ArthritisResTher',
+        '10.1186/s12964': 'CellCommunSignal',
         # OUP / others
         '10.1093/nar': 'NucleicAcidsRes',
         '10.1093/hmg': 'HumMolGenet',
+        # Rheumatology
+        '10.3899/jrheum': 'JRheumatol',
         # Sage
         '10.1177/19476035': 'Cartilage',
         # Spandidos

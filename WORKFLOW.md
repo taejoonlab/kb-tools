@@ -48,6 +48,21 @@ mv "Unknown2015_Cartilage.pdf" "Green2015_GenesDis-review.pdf"
 
 → **dry-run으로 충돌을 먼저 확인**하고, 충돌이 예상되면 1개씩 수동 처리
 
+#### 기존 기사와 이름 중복 확인
+새로 생성할 MD 파일명이 `ko/articles/` 또는 `en/articles/`에 이미 존재하는지 확인한다:
+
+```bash
+# dry-run 결과와 기존 파일 비교
+for f in *.pdf; do
+  target=$(python3 process_pdf.py "$f" --dry-run 2>&1 | grep "대상 이름" | awk '{print $NF}')
+  base="${target%.pdf}"
+  [[ -f "ko/articles/${base}.md" ]] && echo "⚠️  중복: $target (ko/articles/에 이미 존재)"
+  [[ -f "en/articles/${base}.md" ]] && echo "⚠️  중복: $target (en/articles/에 이미 존재)"
+done
+```
+
+중복이 발견되면 해당 PDF는 건너뛰거나 파일명을 수정한다.
+
 ### Step 2: MD 내용 생성 (LLM에 요청)
 **원저 연구 논문만** 대상으로 MD 노트를 생성한다. 리뷰 논문은 건너뛴다.
 
