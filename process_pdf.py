@@ -3,22 +3,26 @@
 PDF → Obsidian MD 변환 워크플로우 자동화 스크립트
 
 사용법:
-  python3 process_pdf.py /path/to/paper.pdf
+  python3 process_pdf.py /path/to/paper.pdf [--dry-run]
 
 기능:
-  1. PyMuPDF로 텍스트 추출 (pymupdf)
-  2. DOI, 제목, 저자, 저널명 자동 검색
-  3. (FirstAuthor)(Year)_(Journal) 형식으로 PDF 이름 변경
-  4. notes/에 MD 파일 스켈레톤 생성 (LLM이 내용 채울 준비)
-  5. 00_processing_log.md 업데이트
+  1. PyMuPDF로 텍스트 추출 (pymupdf, max 30 pages)
+  2. DOI → CrossRef API로 저자명, DOI prefix map으로 저널명 검색
+  3. 리뷰 논문 자동 판별 (VIEWPOINT, Review Article 등)
+  4. (FirstAuthor)(Year)_(Journal)[-review].pdf 형식으로 이름 변경
+  5. 대상 파일명 충돌 체크 (존재 시 abort)
+  6. notes/에 MD 스켈레톤 + 추출 텍스트 파일 생성
+  7. 00_processing_log.md 업데이트
+
+주의:
+  - CrossRef API 접근을 위해 인터넷 연결 필요 (실패 시 regex fallback)
+  - 저널명은 DOI prefix map 우선, 텍스트 기반 검색은 차선으로만 사용
+  - 리뷰 논문은 -review 접미사, MD 파일은 스켈레톤만 생성 (내용 안 채움)
+  - 이름 충돌 시 abort 후 수동 확인 필요
+  - dry-run으로 제안된 이름을 반드시 검증한 후 실제 rename
 
 의존성:
   pip install pymupdf
-
-출력:
-  - PDF → (FirstAuthor)(Year)_(Journal).pdf 로 이름 변경
-  - notes/(FirstAuthor)(Year)_(Journal).md   ← LLM이 내용 채움
-  - notes/00_processing_log.md               ← 진행 로그
 """
 
 import sys
@@ -37,10 +41,10 @@ except ImportError:
     sys.exit(1)
 
 
-def extract_text(pdf_path: str) -> str:
+def extract_text(pdf_path: str, max_pages: int = 30) -> str:
     doc = fitz.open(pdf_path)
     text = ""
-    for page in doc:
+    for page in doc[:max_pages]:
         text += page.get_text()
     return text
 
@@ -61,161 +65,328 @@ def extract_doi(text: str) -> Optional[str]:
 
 
 def extract_year(text: str) -> Optional[str]:
-    """텍스트에서 출판년도 추출"""
-    # DOI에서 연도 추출이 가장 정확
-    doi = extract_doi(text)
-    if doi:
-        # DOI 패턴에 연도가 있는 경우
-        for prefix in ['nrdp', 'sciadv']:
-            pass
-
-    # DOI가 포함된 라인에서 연도 추출
-    for line in text.split('\n'):
-        if 'doi' in line.lower() and re.search(r'20\d{2}', line):
-            continue  # DOI 라인은 제외 (연도가 DOI에 있는 경우)
-
-    # 권호 정보가 있는 라인에서 연도 추출 (가장 신뢰할 수 있음)
-    # "Journal Name. 2024; Vol" or "Name 2024, 123-130" 패턴
+    """텍스트에서 출판년도 추출 (publication date 우선)"""
     lines = text.split('\n')
+
+    # Priority 1: 저널 헤더 라인 (e.g. "iScience 27, 109585, April 19, 2024")
+    for line in lines[:30]:
+        m = re.search(r'\b((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{1,2},?\s+((?:19|20)\d{2}))', line)
+        if m:
+            year = m.group(2)
+            if 1900 <= int(year) <= 2099:
+                return year
+        # "© 2022" or "Copyright 2019"
+        m = re.search(r'(?:©|Copyright)\s*((?:19|20)\d{2})', line)
+        if m:
+            year = m.group(1)
+            if 2000 <= int(year) <= 2099:
+                return year
+
+    # Priority 2: 권호 + 연도 (e.g. "Nature 635, 657 (2024)")
+    for line in lines[:30]:
+        m = re.search(r'[\(（]\s*((?:19|20)\d{2})\s*[\)）]', line)
+        if m:
+            year = m.group(1)
+            if 2000 <= int(year) <= 2099:
+                return year
+
+    # Priority 3: Published / online date (출판일 우선)
     for line in lines[:100]:
-        line = line.strip()
-        # (2024)Vol or 2024;Vol or 2024:Vol
-        m = re.search(r'\b((?:19|20)\d{2})\s*[;:,]\s*(?:Vol|Suppl|\d+)', line)
+        m = re.search(r'(?:Published|online|publication)\s*(?:\w+\s*)*[:\s]*\s*((?:19|20)\d{2})', line, re.IGNORECASE)
+        if m:
+            year = m.group(1)
+            if 2000 <= int(year) <= 2099:
+                return year
+
+    # Priority 4: 권호 정보 (e.g. "2024;Vol" "2023; Vol")
+    for line in lines[:100]:
+        m = re.search(r'\b((?:19|20)\d{2})\s*[;:,]\s*(?:Vol|Suppl|\d+\s*[;:,])', line)
         if m:
             year = m.group(1)
             if 1900 <= int(year) <= 2099:
                 return year
-        # Published: 2024
-        m = re.search(r'(?:Published|pub|Accepted|Received|online)\s*(?:\w+\s*)*[:\s]*\s*((?:19|20)\d{2})', line, re.IGNORECASE)
+
+    # Priority 5: Accepted date (Accepted 뒤에 published year가 옴)
+    for line in lines[:100]:
+        m = re.search(r'(?:Accepted|accepted)\s*(?:\w+\s*)*[:\s]*\s*((?:19|20)\d{2})', line)
         if m:
             year = m.group(1)
             if 2000 <= int(year) <= 2099:
                 return year
 
-    # DOI에서 연도 추출 시도 (일부 DOI는 연도 포함)
+    # Priority 6: Received date (마지막 수단)
+    for line in lines[:100]:
+        m = re.search(r'(?:Received|revised)\s*(?:\w+\s*)*[:\s]*\s*((?:19|20)\d{2})', line, re.IGNORECASE)
+        if m:
+            year = m.group(1)
+            if 2000 <= int(year) <= 2099:
+                return year
+
+    # Priority 7: DOI에서 연도 추출
+    doi = extract_doi(text)
     if doi:
-        # e.g., 10.1002/bdrc.20124 → 연도 없음
-        # 10.1096/fj.201800534R → 2018
         m = re.search(r'\.(20\d{2})', doi)
         if m:
             return m.group(1)
 
-    # 첫 번째 나타나는 사년도 숫자 (1900-2099)
+    # Priority 8: 첫 200줄 내 4자리 연도 (general fallback)
     for line in lines[:200]:
-        for m in re.finditer(r'\b(20[0-2]\d)\b', line):
+        m = re.search(r'\b(20[0-2]\d)\b', line)
+        if m:
             year = m.group(1)
-            if 2000 <= int(year) <= 2099:
+            if 2000 <= int(year) <= 2029:
                 return year
+
     return None
 
 
-def extract_first_author(text: str) -> Optional[str]:
+def extract_first_author(text: str, doi: Optional[str] = None) -> Optional[str]:
     """첫 번째 저자 성(Last name) 추출.
-    Author list line에서 첫 번째 저자 성을 찾음."""
-    lines = text[:5000].split('\n')
+    DOI가 있으면 CrossRef API 조회, 실패 시 regex fallback."""
+    # CrossRef API 조회 (가장 정확)
+    if doi:
+        try:
+            import urllib.request
+            import urllib.error
+            url = f"https://api.crossref.org/works/{doi}"
+            req = urllib.request.Request(url, headers={"User-Agent": "process_pdf/1.0"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read())
+                authors = data.get("message", {}).get("author", [])
+                if authors:
+                    first = authors[0].get("family", "")
+                    if first and len(first) > 1:
+                        return re.sub(r'[^A-Za-zÀ-ü\-]', '', first)
+        except Exception:
+            pass  # 네트워크 오류 등 → regex fallback
 
-    # Author list line 찾기: "Last1 F1, Last2 F2, ..." or "Last1, F1, Last2, F2,..."
-    # "and Last F"로 끝나는 줄이 author list
-    author_line = None
+    # Regex fallback
+    lines = text[:5000].split('\n')
+    # 패턴 1: "Last1 F1, Last2 F2, ..., and LastN FN" 형태
     for i, line in enumerate(lines[:200]):
         line = line.strip()
         if not line or len(line) < 10:
             continue
-        # and로 끝나는 author list 패턴
-        if re.search(r'\b(?:and|&)\s+[A-Z][a-zà-ü]+\s+[A-Z]\.?\s*$', line):
-            author_line = line
+        # and/& + Last Initial. 로 끝나는 저자 리스트
+        if re.search(r'\b(?:and|&)\s+[A-Z][a-zà-ü\-]+\s+[A-Z]\.?(?:$|\s*\d)', line):
+            # 저자 리스트 전체를 쉼표로 분리
+            parts = line.split(',')
+            raw = parts[0].strip()
+            words = raw.split()
+            if words:
+                name = words[0]
+                name = re.sub(r'[^A-Za-zÀ-ü\-]', '', name)
+                if len(name) > 1:
+                    return name
             break
-        # 여러 저자가 쉼표로 구분된 패턴 (Correspondence 제외)
-        if re.match(r'^[A-Z][a-zà-ü]+ [A-Z]\.\s*,\s*[A-Z][a-zà-ü]+ [A-Z]\.', line):
-            if 'correspondence' not in line.lower() and 'email' not in line.lower():
-                author_line = line
-                break
+        # 여러 저자가 쉼표 또는 번호+쉼표로 구분된 패턴
+        # e.g. "Kangkang Zha,1,2,3 Zhiqiang Sun,1,2,3 ..."
+        # extract first name before the first number/comma break
+        m = re.match(r'^([A-Z][a-zà-ü\-]+(?:\s+[A-Z][a-zà-ü\-]+)*)\s*(?:[A-Z]\.?\s*)?', line)
+        if m and re.search(r'[.,]\s*\d', line):
+            author_candidate = m.group(1)
+            words = author_candidate.split()
+            last_name = words[-1] if len(words) > 1 else words[0]
+            last_name = re.sub(r'[^A-Za-zÀ-ü\-]', '', last_name)
+            if last_name and len(last_name) > 1:
+                if not re.search(r'(?:correspondence|email|abstract|introduction|summary|key\s*words)', line, re.IGNORECASE):
+                    return last_name
 
-    if author_line:
-        # 첫 번째 저자 성 추출
-        first_author = author_line.split(',')[0].strip()
-        # "Last F." 형식 → Last
-        first_name = first_author.split()[0]
-        # 특수문자 제거
-        first_name = re.sub(r'[^A-Za-zÀ-ü]', '', first_name)
-        if first_name and len(first_name) > 1:
-            return first_name.capitalize()
-
-    # Fallback: "Authors: Last F, ..." 패턴
-    for line in lines[:200]:
-        m = re.search(r'(?:Authors?|By)\s*:\s*([A-Z][a-zà-ü]+)', line)
+    # 패턴 2: 단독 저자 "Last Name" or "First Last" on title page
+    for line in lines[:50]:
+        line = line.strip()
+        # "David B. Burr PhD*" → Burr
+        # 여러 단어였는데 뒤에 PhD, MD, title 등이 붙은 경우
+        m = re.match(r'^([A-Z][a-zà-ü\-]+(?:\s+[A-Z]\.?){0,2})\s*(?:PhD|MD|DDS|DVM|Dr|Prof)', line)
         if m:
-            return m.group(1).capitalize()
+            name = m.group(1).split()[0]
+            if len(name) > 1:
+                return name
+        # 제목 직후 저자명 단독 라인 (e.g. Title line 다음에 "Author Name"만)
+        m = re.match(r'^([A-Z][a-zà-ü\-]+)\s+[A-Z]\.?\s*$', line)
+        if m:
+            last = m.group(1)
+            if last.lower() not in ('the', 'and', 'for', 'from', 'with', 'that', 'this'):
+                return last
 
     return None
 
 
 def extract_journal(text: str) -> Optional[str]:
-    """저널명 약어 추출"""
-    # 먼저 DOI prefix로 저널 추정
+    """저널명 약어 추출 (DOI prefix 우선 → 텍스트 헤더 정보 차선)"""
     doi = extract_doi(text)
-    if doi:
-        doi_prefix_map = {
-            '10.1126/sciadv': 'SciAdv',
-            '10.1038/s41597': 'SciData',
-            '10.1038/nrdp': 'NatRevDisPrimers',
-            '10.1093/nar': 'NucleicAcidsRes',
-            '10.1242/dev': 'Development',
-            '10.1096/fj': 'FASEB',
-            '10.1016/j.biomaterials': 'Biomaterials',
-            '10.3389/fcell': 'FrontCellDevBiol',
-            '10.1186/s12891': 'BMCMusculoskeletDisord',
-            '10.3892/mmr': 'MolMedRep',
-            '10.1016/j.joca': 'OsteoarthritisCartilage',
-            '10.1177/19476035': 'Cartilage',
-            '10.1146/annurev-physiol': 'AnnuRevPhysiol',
-            '10.1146/annurev.cellbio': 'AnnuRevCellDevBiol',
-            '10.1002/bdrc': 'BirthDefectsResC',
-            '10.1073/pnas': 'PNAS',
-            '10.7554/eLife': 'eLife',
-            '10.7554/elife': 'eLife',
-        }
-        for prefix, abbr in doi_prefix_map.items():
-            if doi.lower().startswith(prefix):
-                return abbr
+    doi_lower = doi.lower() if doi else ""
 
+    doi_prefix_map = {
+        # Cell Press / Elsevier
+        '10.1016/j.joca': 'OsteoarthritisCartilage',
+        '10.1016/j.mod': 'MechDev',
+        '10.1016/j.jgg': 'JGenetGenomics',
+        '10.1016/j.bonr': 'BoneRep',
+        '10.1016/j.isci': 'iScience',
+        '10.1016/j.gendis': 'GenesDis',
+        '10.1016/j.stem': 'CellStemCell',
+        '10.1016/j.devcel': 'DevCell',
+        '10.1016/j.biomaterials': 'Biomaterials',
+        # Nature Publishing
+        '10.1038/s41413': 'BoneRes',
+        '10.1038/s41586': 'Nature',
+        '10.1038/s41467': 'NatCommun',
+        '10.1038/s41597': 'SciData',
+        '10.1038/nrdp': 'NatRevDisPrimers',
+        '10.1038/s41584': 'NatRevRheumatol',
+        '10.1038/s41556': 'NatCellBiol',
+        # Science / AAAS
+        '10.1126/science': 'Science',
+        '10.1126/sciadv': 'SciAdv',
+        '10.1126/scitranslmed': 'SciTranslMed',
+        # PNAS / eLife
+        '10.1073/pnas': 'PNAS',
+        '10.7554/elife': 'eLife',
+        '10.7554/eLife': 'eLife',
+        # Wiley
+        '10.1002/dvdy': 'DevDyn',
+        '10.1002/bdrc': 'BirthDefectsResC',
+        '10.1002/stem': 'StemCells',
+        '10.1002/jsp2': 'JORSpine',
+        '10.1002/jbmr': 'JBMR',
+        '10.1002/art': 'ArthritisRheumatol',
+        # Company of Biologists
+        '10.1242/dev': 'Development',
+        '10.1242/jcs': 'JCellSci',
+        '10.1242/dmm': 'DisModelMech',
+        # FASEB / FEBS
+        '10.1096/fj': 'FASEB',
+        '10.1111/febs': 'FEBSJ',
+        # ACS
+        '10.1021/acsnano': 'ACSNano',
+        '10.1021/acs.biochem': 'Biochemistry',
+        # Frontiers
+        '10.3389/fcell': 'FrontCellDevBiol',
+        '10.3389/fbioe': 'FrontBioengBiotechnol',
+        # BMC / Springer
+        '10.1186/s12891': 'BMCMusculoskeletDisord',
+        '10.1186/s13287': 'StemCellResTher',
+        '10.1186/s13075': 'ArthritisResTher',
+        # OUP / others
+        '10.1093/nar': 'NucleicAcidsRes',
+        '10.1093/hmg': 'HumMolGenet',
+        # Sage
+        '10.1177/19476035': 'Cartilage',
+        # Spandidos
+        '10.3892/mmr': 'MolMedRep',
+        # Annual Reviews
+        '10.1146/annurev-physiol': 'AnnuRevPhysiol',
+        '10.1146/annurev.cellbio': 'AnnuRevCellDevBiol',
+        # Hindawi (generic prefix → 텍스트에서 저널명 찾아야 함)
+        '10.1155/': '__HINDAWI__',
+    }
+    for prefix, abbr in doi_prefix_map.items():
+        if doi_lower.startswith(prefix):
+            if abbr == '__HINDAWI__':
+                break  # fall through to text search
+            return abbr
+
+    # 텍스트 기반 저널명 검색 (DOI 실패 시에만, 헤더 정보에 한정)
+    # 저널명으로 확신할 수 있는 컨텍스트 단어가 함께 있을 때만 매칭
+    header_keywords = ['©', 'Copyright', 'published', 'Volume', 'Vol.', 'ISSN',
+                       'journal homepage', 'www.', 'wileyonlinelibrary', 'onlinelibrary']
     known_journals = {
         'Sci Adv': 'SciAdv',
+        'Science Advances': 'SciAdv',
+        'Science': 'Science',
         'Scientific Data': 'SciData',
-        'Nat Rev Dis Primers': 'NatRevDisPrimers',
+        'Nature': 'Nature',
+        'Nature Communications': 'NatCommun',
         'Nature Reviews Disease Primers': 'NatRevDisPrimers',
+        'Nat Rev Dis Primers': 'NatRevDisPrimers',
         'Nucleic Acids Res': 'NucleicAcidsRes',
         'Nucleic Acids Research': 'NucleicAcidsRes',
         'Development': 'Development',
+        'Developmental Cell': 'DevCell',
+        'Developmental Dynamics': 'DevDyn',
         'FASEB J': 'FASEB',
+        'FASEB Journal': 'FASEB',
+        'FEBS Journal': 'FEBSJ',
         'Biomaterials': 'Biomaterials',
         'Front Cell Dev Biol': 'FrontCellDevBiol',
         'BMC Musculoskelet Disord': 'BMCMusculoskeletDisord',
         'Mol Med Rep': 'MolMedRep',
         'Osteoarthritis Cartilage': 'OsteoarthritisCartilage',
+        'Osteoarthritis and Cartilage': 'OsteoarthritisCartilage',
         'Cartilage': 'Cartilage',
         'Annu Rev Physiol': 'AnnuRevPhysiol',
         'Annu Rev Cell Dev Biol': 'AnnuRevCellDevBiol',
         'Birth Defects Res C': 'BirthDefectsResC',
         'Proc Natl Acad Sci USA': 'PNAS',
+        'PNAS': 'PNAS',
         'eLife': 'eLife',
+        'Bone Research': 'BoneRes',
+        'Bone Reports': 'BoneRep',
+        'iScience': 'iScience',
+        'Genes & Diseases': 'GenesDis',
+        'Genes Dis': 'GenesDis',
+        'Mechanisms of Development': 'MechDev',
+        'Mech Dev': 'MechDev',
+        'Journal of Genetics and Genomics': 'JGenetGenomics',
+        'J Genet Genomics': 'JGenetGenomics',
+        'JOR Spine': 'JORSpine',
+        'ACS Nano': 'ACSNano',
+        'Stem Cells': 'StemCells',
+        'Stem Cells International': 'StemCellsInt',
+        'Stem Cells Int': 'StemCellsInt',
+        'Cell Stem Cell': 'CellStemCell',
+        'Journal of Bone and Mineral Research': 'JBMR',
+        'JBMR': 'JBMR',
     }
 
-    lines = text[:5000].split('\n')
+    lines = text[:3000].split('\n')
     for line in lines:
         line_lower = line.lower()
+        # 저널명 라인은 보통 헤더 문구와 함께 나타남
+        has_header_context = any(kw.lower() in line_lower for kw in header_keywords)
         for name, abbr in known_journals.items():
-            if name.lower() in line_lower.replace(' ', ''):
-                return abbr
+            if name.lower() in line:
+                if has_header_context or 'journal' in line_lower:
+                    return abbr
+                # 저널명이 일반 단어와 혼동될 가능성이 낮은 경우만 컨텍스트 없이 허용
+                # (e.g. "iScience", "eLife", "Osteoarthritis and Cartilage")
+                if len(name) > 12 and name.lower() not in ('development', 'nature', 'science'):
+                    return abbr
 
     return None
 
 
+def detect_review(text: str) -> bool:
+    """리뷰 논문 여부 판별"""
+    head = text[:3000]
+    review_patterns = [
+        r'\bREVIEW\s+ARTICLE\b', r'\bReview\s+Article\b',
+        r'\bVIEWPOINT\b', r'\bViewpoint\b',
+        r'\bMINIREVIEW\b', r'\bMinireview\b', r'\bMini-?Review\b',
+        r'\bPERSPECTIVE\b',
+    ]
+    for pat in review_patterns:
+        if re.search(pat, head):
+            return True
+    # 자연어 패턴 (case-insensitive)
+    natural_patterns = [
+        r'\bthis review\b', r'\bwe review\b', r'\bI review\b',
+        r'\breview summarizes\b', r'\breview highlights\b',
+        r'\bthis article reviews\b', r'\bhere,? we review\b',
+    ]
+    for pat in natural_patterns:
+        if re.search(pat, head, re.IGNORECASE):
+            return True
+    return False
+
+
 def suggest_target_name(pdf_path: str, text: str, doi: Optional[str]) -> str:
-    """FirstAuthorYear_Journal.pdf 형식 제안"""
-    author = extract_first_author(text)
+    """FirstAuthorYear_Journal[-review].pdf 형식 제안"""
+    author = extract_first_author(text, doi)
     year = extract_year(text)
     journal = extract_journal(text)
+    is_review = detect_review(text)
 
     if not author:
         # 파일명에서 fallback
@@ -230,15 +401,13 @@ def suggest_target_name(pdf_path: str, text: str, doi: Optional[str]) -> str:
     if not year:
         year = "XXXX"
 
-    # 저널명 단축 (첫 단어만)
     if journal:
-        j_short = journal.split()[0].rstrip('.')
-        # 특수문자 제거
-        j_short = re.sub(r'[^A-Za-z0-9]', '', j_short)
+        j_short = re.sub(r'[^A-Za-z0-9]', '', journal)
     else:
         j_short = "Unknown"
 
-    return f"{author}{year}_{j_short}.pdf"
+    suffix = "-review" if is_review else ""
+    return f"{author}{year}_{j_short}{suffix}.pdf"
 
 
 def create_md_skeleton(pdf_path: str, target_basename: str, doi: Optional[str]) -> str:
@@ -319,16 +488,39 @@ def main():
     doi = extract_doi(text)
     print(f"   DOI: {doi if doi else 'Not found'}")
 
+    # 리뷰/원저 판별
+    is_review = detect_review(text)
+    if is_review:
+        print(f"   유형: 리뷰 논문 (MD 생성 제외, -review 접미사)")
+
     # 대상 파일명 제안
     target_name = suggest_target_name(pdf_path, text, doi)
     print(f"   대상 이름: {target_name}")
 
-    # MD 스켈레톤 생성
+    # 충돌 체크
+    target_path = os.path.join(pdf_dir, target_name)
+    if os.path.exists(target_path) and target_path != pdf_path:
+        print(f"   ⚠️  충돌: 대상 파일이 이미 존재함!")
+        print(f"      기존: {target_name}")
+        alt_name = target_name.replace('.pdf', '_dup.pdf')
+        print(f"      제안: {alt_name}")
+        if not dry_run:
+            print(f"      → abort. 수동으로 확인 후 rename 하세요.")
+            sys.exit(1)
+        else:
+            print(f"      (dry-run - 계속 진행)")
+
+    # MD 스켈레톤 생성 (리뷰는 skeleton만 만들고 TODO 표시)
     md_path = create_md_skeleton(pdf_path, target_name, doi)
+    if is_review:
+        md_path_obj = Path(md_path)
+        md_path_obj.write_text(md_path_obj.read_text().replace(
+            "# TITLE_PLACEHOLDER",
+            "# TITLE_PLACEHOLDER (REVIEW - MD 생성 대상 아님)"
+        ))
     print(f"   MD 파일: {md_path}")
 
     # PDF 이름 변경
-    target_path = os.path.join(pdf_dir, target_name)
     old_name = pdf_name
 
     if pdf_name == target_name:
@@ -340,11 +532,12 @@ def main():
         print(f"   PDF 이름: {pdf_name} → {target_name}")
 
     # Log 업데이트
-    log_entry = f"|  | {target_name} (renamed from {old_name}) | {Path(md_path).name} | ✅ Done |"
+    review_tag = " [REVIEW]" if is_review else ""
+    log_entry = f"|{review_tag} | {target_name} (renamed from {old_name}) | {Path(md_path).name} | ✅ Done |"
     if not dry_run:
         update_log(pdf_dir, log_entry)
 
-    # 텍스트 추출본 저장 (LLM이 MD 내용 채울 때 참고)
+    # 텍스트 추출본 저장
     txt_path = f"{Path(md_path).stem}_extracted.txt"
     txt_full = Path(pdf_dir) / "notes" / txt_path
     if not dry_run:
@@ -352,7 +545,10 @@ def main():
         print(f"   텍스트 추출본: {txt_full}")
 
     print(f"✅ 완료: {target_name}")
-    print(f"   → notes/ 디렉토리의 MD 파일 내용을 LLM이 채우도록 요청하세요.")
+    if not is_review:
+        print(f"   → notes/ 디렉토리의 MD 파일 내용을 LLM이 채우도록 요청하세요.")
+    else:
+        print(f"   → 리뷰 논문이므로 MD 내용 생성은 건너뜁니다.")
 
 
 if __name__ == "__main__":
