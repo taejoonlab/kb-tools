@@ -52,7 +52,8 @@
     "Company of Biologists": {
       "10.1242/dev": "Development",
       "10.1242/jcs": "JCellSci",
-      "10.1242/dmm": "DisModelMech"
+      "10.1242/dmm": "DisModelMech",
+      "10.1242/bio": "BiolOpen"
     },
     "FASEB / FEBS": {
       "10.1096/fj": "FASEB",
@@ -89,6 +90,24 @@
     },
     "Hindawi": {
       "10.1155/": "__HINDAWI__"
+    },
+    "bioRxiv / medRxiv": {
+      "10.1101/": "bioRxiv"
+    },
+    "Wiley (additional)": {
+      "10.1002/advs": "AdvSci",
+      "10.1002/ctm2": "ClinTranslMed",
+      "10.1002/bio": "BiolOpen"
+    },
+    "MDPI": {
+      "10.3390/cells": "Cells",
+      "10.3390/ijms": "IJMS"
+    },
+    "Frontiers (additional)": {
+      "10.3389/fgene": "FrontGenet"
+    },
+    "Wiley (Arthritis)": {
+      "10.1002/art": "ArthritisRheum"
     }
   },
 
