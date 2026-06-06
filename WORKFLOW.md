@@ -105,16 +105,77 @@ done
 > for f in *.pdf; do python3 process_pdf.py "$f" --dry-run 2>&1 | grep "대상 이름"; done | sort | uniq -c
 > ```
 
+### Step 3: LLM 처리 메타데이터 기록
+
+모든 MD 파일 하단에 LLM 처리 정보를 기록한다. Perspective 섹션 뒤에 `---`로 구분하여 추가:
+
+```
+---
+
+*Processed by **{LLM_MODEL}** ({TOOL}) on {YYYY-MM-DD}*
+```
+
+예시:
+```
+---
+
+*Processed by **DeepSeek V4 Flash** (OpenCode Go) on 2026-06-06*
+```
+
+- `{LLM_MODEL}`: 사용한 LLM (예: `DeepSeek V4 Flash`, `Claude Sonnet 4`, `GPT-4o`)
+- `{TOOL}`: 사용한 도구 (예: `OpenCode Go`, `Claude Code`)
+- `{YYYY-MM-DD}`: 처리 완료일
+
+목적: (1) 노트 생성에 사용된 LLM 추적, (2) 향후 업데이트 시 동일 모델로 일관성 유지, (3) vault의 provenance 기록.
+
+```bash
+# 개별 파일
+printf '\n---\n\n*Processed by **DeepSeek V4 Flash** (OpenCode Go) on 2026-06-06*\n' >> articles/filename.md
+
+# 배치 추가
+for f in {ko,en}/articles/*.md; do
+  printf '\n---\n\n*Processed by **%s** (%s) on %s*\n' "$MODEL" "$TOOL" "$DATE" >> "$f"
+done
+```
+
+### Step 4: Commit & Push
+
+```bash
+# tools submodule (변경 있을 때)
+cd tools && git add -A && git commit -m "..." && git push origin main && cd ..
+
+# vault
+git add -A && git commit -m "{action}: {lang} {description}" && git push origin main
+```
+
+commit 메시지 형식: `{action}: {lang} {description}` (예: `add: en Wu2021_NatComm`, `edit: ko Haseeb2021_PNAS`)
+
 ## 파일 구조
 ```
 ko/pdf/
 ├── (FirstAuthor)(Year)_(Journal).pdf        # 원저 연구
 ├── (FirstAuthor)(Year)_(Journal)-review.pdf # 리뷰 논문
-├── notes/
-│   ├── 00_processing_log.md            # 처리 현황
-│   └── (FirstAuthor)(Year)_(Journal)_extracted.txt  # 추출 텍스트
 └── ko/articles/
     └── (FirstAuthor)(Year)_(Journal).md  # 최종 MD 노트 (원저만)
+en/articles/
+    └── (FirstAuthor)(Year)_(Journal).md  # 영어 번역
+```
+
+각 MD 파일의 최종 구조:
+```
+# Title
+## Citation (NLM)
+...
+## Background
+...
+## Key Experiment Methods
+...
+## Results
+...
+## Perspective
+...
+---
+*Processed by **{LLM}** ({Tool}) on {date}*
 ```
 
 ## 주의사항 (Batch Processing Lessons)
@@ -124,4 +185,5 @@ ko/pdf/
 - **저널 매핑 한계**: `process_pdf.py`의 저널 prefix 매핑은 주요 저널 위주로만 되어 있음 (Science → Development 등 오류 발생). DOI prefix 확인 후 수동 보정 필요
 - **대용량 PDF 타임아웃**: 15+ 페이지 PDF는 텍스트 추출에 수 분 소요 → extract_text()에 페이지 제한 고려
 - **2개 언어 디렉토리**: MD 노트는 `{lang}/articles/`에 생성 (en/ko bilingual mirror)
--  `process_pdf.py`의 자동 추천 이름은 **참고용**으로만 사용하고, 최종 파일명은 사람이 직접 결정
+- `process_pdf.py`의 자동 추천 이름은 **참고용**으로만 사용하고, 최종 파일명은 사람이 직접 결정
+- **bilingual mirror 필수**: 원저 연구는 항상 `ko/articles/`와 `en/articles/` 쌍으로 생성
