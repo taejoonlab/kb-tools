@@ -4,6 +4,7 @@
 
   "doi_prefix_map": {
     "Cell Press / Elsevier": {
+      "10.1016/j.cell": "Cell",
       "10.1016/j.joca": "OsteoarthritisCartilage",
       "10.1016/j.mod": "MechDev",
       "10.1016/j.jgg": "JGenetGenomics",
@@ -47,7 +48,8 @@
       "10.1002/stem": "StemCells",
       "10.1002/jsp2": "JORSpine",
       "10.1002/jbmr": "JBMR",
-      "10.1002/art": "ArthritisRheumatol"
+      "10.1002/art": "ArthritisRheumatol",
+      "10.1002/bit": "BiotechnolBioeng"
     },
     "Company of Biologists": {
       "10.1242/dev": "Development",
@@ -72,6 +74,19 @@
       "10.1186/s13287": "StemCellResTher",
       "10.1186/s13075": "ArthritisResTher",
       "10.1186/s12964": "CellCommunSignal"
+    },
+    "ASBMB / ASCB": {
+      "10.1074/jbc": "JBC",
+      "10.1091/mbc": "MolBiolCell"
+    },
+    "Mary Ann Liebert": {
+      "10.1089/ten.tea": "TissueEngPartA"
+    },
+    "Taylor & Francis": {
+      "10.1080/21655979": "Bioengineered"
+    },
+    "Cognizant": {
+      "10.3727/": "CellTransplant"
     },
     "OUP / others": {
       "10.1093/nar": "NucleicAcidsRes",

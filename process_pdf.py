@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-PDF → Obsidian MD 변환 워크플로우 자동화 스크립트
+PDF -> Obsidian MD 변환 워크플로우 자동화 스크립트
 
 사용법:
   python3 process_pdf.py /path/to/paper.pdf [--dry-run]
 
 기능:
   1. PyMuPDF로 텍스트 추출 (pymupdf, max 30 pages)
-  2. DOI → CrossRef API로 저자명, DOI prefix map으로 저널명 검색
+  2. DOI -> CrossRef API로 저자명, DOI prefix map으로 저널명 검색
   3. 리뷰 논문 자동 판별 (VIEWPOINT, Review Article 등)
   4. (FirstAuthor)(Year)_(Journal)[-review].pdf 형식으로 이름 변경
   5. 대상 파일명 충돌 체크 (존재 시 abort)
@@ -48,7 +48,7 @@ def _load_journal_map() -> tuple:
     """Load DOI prefix map and known journals from JSON file."""
     if not _MAP_FILE.exists():
         return {}, {}
-    with open(_MAP_FILE) as f:
+    with open(_MAP_FILE, encoding='utf-8') as f:
         data = json.load(f)
     # Flatten nested doi_prefix_map
     doi_map = {}
@@ -103,7 +103,7 @@ def extract_year(text: str) -> Optional[str]:
 
     # Priority 2: 권호 + 연도 (e.g. "Nature 635, 657 (2024)")
     for line in lines[:30]:
-        m = re.search(r'[\(（]\s*((?:19|20)\d{2})\s*[\)）]', line)
+        m = re.search(r'[\((]\s*((?:19|20)\d{2})\s*[\))]', line)
         if m:
             year = m.group(1)
             if 2000 <= int(year) <= 2099:
@@ -177,7 +177,7 @@ def extract_first_author(text: str, doi: Optional[str] = None) -> Optional[str]:
                     if first and len(first) > 1:
                         return re.sub(r'[^A-Za-zÀ-ü\-]', '', first)
         except Exception:
-            pass  # 네트워크 오류 등 → regex fallback
+            pass  # 네트워크 오류 등 -> regex fallback
 
     # Regex fallback
     lines = text[:5000].split('\n')
@@ -214,7 +214,7 @@ def extract_first_author(text: str, doi: Optional[str] = None) -> Optional[str]:
     # 패턴 2: 단독 저자 "Last Name" or "First Last" on title page
     for line in lines[:50]:
         line = line.strip()
-        # "David B. Burr PhD*" → Burr
+        # "David B. Burr PhD*" -> Burr
         # 여러 단어였는데 뒤에 PhD, MD, title 등이 붙은 경우
         m = re.match(r'^([A-Z][a-zà-ü\-]+(?:\s+[A-Z]\.?){0,2})\s*(?:PhD|MD|DDS|DVM|Dr|Prof)', line)
         if m:
@@ -232,7 +232,7 @@ def extract_first_author(text: str, doi: Optional[str] = None) -> Optional[str]:
 
 
 def extract_journal(text: str) -> Optional[str]:
-    """저널명 약어 추출 (DOI prefix 우선 → 텍스트 헤더 정보 차선)"""
+    """저널명 약어 추출 (DOI prefix 우선 -> 텍스트 헤더 정보 차선)"""
     doi = extract_doi(text)
     doi_lower = doi.lower() if doi else ""
 
@@ -351,7 +351,7 @@ TODO
     notes_dir.mkdir(exist_ok=True)
 
     md_path = notes_dir / f"{Path(target_basename).stem}.md"
-    md_path.write_text(md_content)
+    md_path.write_text(md_content, encoding='utf-8')
 
     return str(md_path)
 
@@ -360,9 +360,9 @@ def update_log(pdf_dir: str, entry: str):
     log_path = Path(pdf_dir) / "notes" / "00_processing_log.md"
     log_path.parent.mkdir(exist_ok=True)
     if not log_path.exists():
-        log_path.write_text("# Processing Log\n\n| # | PDF | MD | Status |\n|---|-----|----|--------|\n")
+        log_path.write_text("# Processing Log\n\n| # | PDF | MD | Status |\n|---|-----|----|--------|\n", encoding='utf-8')
 
-    with open(log_path, 'a') as f:
+    with open(log_path, 'a', encoding='utf-8') as f:
         f.write(entry + "\n")
 
 
@@ -382,7 +382,7 @@ def main():
     pdf_dir = os.path.dirname(pdf_path)
     pdf_name = os.path.basename(pdf_path)
 
-    print(f"📄 처리 중: {pdf_name}")
+    print(f"[PROCESS] {pdf_name}")
 
     # 텍스트 추출
     text = extract_text(pdf_path)
@@ -404,12 +404,12 @@ def main():
     # 충돌 체크
     target_path = os.path.join(pdf_dir, target_name)
     if os.path.exists(target_path) and target_path != pdf_path:
-        print(f"   ⚠️  충돌: 대상 파일이 이미 존재함!")
+        print(f"   [WARN]  충돌: 대상 파일이 이미 존재함!")
         print(f"      기존: {target_name}")
         alt_name = target_name.replace('.pdf', '_dup.pdf')
         print(f"      제안: {alt_name}")
         if not dry_run:
-            print(f"      → abort. 수동으로 확인 후 rename 하세요.")
+            print(f"      -> abort. 수동으로 확인 후 rename 하세요.")
             sys.exit(1)
         else:
             print(f"      (dry-run - 계속 진행)")
@@ -430,14 +430,14 @@ def main():
     if pdf_name == target_name:
         print(f"   PDF 이름: 이미 올바른 형식")
     elif dry_run:
-        print(f"   PDF 이름: {pdf_name} → {target_name} (dry-run)")
+        print(f"   PDF 이름: {pdf_name} -> {target_name} (dry-run)")
     else:
         os.rename(pdf_path, target_path)
-        print(f"   PDF 이름: {pdf_name} → {target_name}")
+        print(f"   PDF 이름: {pdf_name} -> {target_name}")
 
     # Log 업데이트
     review_tag = " [REVIEW]" if is_review else ""
-    log_entry = f"|{review_tag} | {target_name} (renamed from {old_name}) | {Path(md_path).name} | ✅ Done |"
+    log_entry = f"|{review_tag} | {target_name} (renamed from {old_name}) | {Path(md_path).name} | [DONE] Done |"
     if not dry_run:
         update_log(pdf_dir, log_entry)
 
@@ -445,14 +445,14 @@ def main():
     txt_path = f"{Path(md_path).stem}_extracted.txt"
     txt_full = Path(pdf_dir) / "notes" / txt_path
     if not dry_run:
-        txt_full.write_text(text[:50000])
+        txt_full.write_text(text[:50000], encoding='utf-8')
         print(f"   텍스트 추출본: {txt_full}")
 
-    print(f"✅ 완료: {target_name}")
+    print(f"[DONE] 완료: {target_name}")
     if not is_review:
-        print(f"   → notes/ 디렉토리의 MD 파일 내용을 LLM이 채우도록 요청하세요.")
+        print(f"   -> notes/ 디렉토리의 MD 파일 내용을 LLM이 채우도록 요청하세요.")
     else:
-        print(f"   → 리뷰 논문이므로 MD 내용 생성은 건너뜁니다.")
+        print(f"   -> 리뷰 논문이므로 MD 내용 생성은 건너뜁니다.")
 
 
 if __name__ == "__main__":
