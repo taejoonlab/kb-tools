@@ -13,12 +13,14 @@ pip install pymupdf
 ### Step 0: PDF 분류 (리뷰 vs 연구)
 PDF를 **리뷰 논문**과 **원저 연구**로 분류한다.
 
-| 구분 | 파일명 접미사 | MD 노트 |
-|------|-------------|---------|
-| 원저 연구 | `(FirstAuthor)(Year)_(Journal).pdf` | 생성 |
-| 리뷰 논문 | `(FirstAuthor)(Year)_(Journal)**-review**.pdf` | **생성하지 않음** |
+| 구분 | 파일명 접미사 | MD 노트 위치 | 스킬 |
+|------|-------------|-------------|------|
+| 원저 연구 | `(FirstAuthor)(Year)_(Journal).pdf` | `ko/articles/` | `SKILL.md` |
+| 리뷰 논문 | `(FirstAuthor)(Year)_(Journal)**-review**.pdf` | `ko/reviews/` | `SKILL_REVIEW.md` |
 
 **리뷰 판별 기준**: 제목·초록에 "review" 명시, "VIEWPOINT" 등 opinion 형식, 기존 문헌 종합·분석 논문
+
+> 리뷰 논문 처리는 **`SKILL_REVIEW.md`** 참조
 
 ### Step 1: PDF 텍스트 추출 + 파일명 정리 (1회 1개 PDF)
 ```bash
@@ -64,9 +66,9 @@ done
 중복이 발견되면 해당 PDF는 건너뛰거나 파일명을 수정한다.
 
 ### Step 2: MD 내용 생성 (LLM에 요청)
-**원저 연구 논문만** 대상으로 MD 노트를 생성한다. 리뷰 논문은 건너뛴다.
+**원저 연구 논문만** 이 스킬로 처리한다. 리뷰 논문은 `SKILL_REVIEW.md`를 사용한다.
 
-추출된 텍스트를 읽고 아래 형식으로 Obsidian markdown 파일을 생성:
+추출된 텍스트를 읽고 아래 형식으로 `ko/articles/` 에 Obsidian markdown 파일을 생성:
 
 ```
 # 논문 제목
@@ -101,7 +103,7 @@ done
 
 배치 처리 시 리뷰 논문을 걸러내려면:
 ```bash
-# MD 생성 대상에서 리뷰 제외: *-review.pdf 는 건너뜀
+# MD 생성 대상에서 리뷰 제외: *-review_extracted.txt 는 건너뜀
 for f in notes/*_extracted.txt; do
   base=$(basename "$f" _extracted.txt)
   [[ "$base" == *-review ]] && echo "SKIP review: $base" && continue
@@ -169,11 +171,13 @@ commit 메시지 형식: `{action}: {lang} {description}` (예: `add: en Wu2021_
 ```
 ko/pdf/
 ├── (FirstAuthor)(Year)_(Journal).pdf        # 원저 연구
-├── (FirstAuthor)(Year)_(Journal)-review.pdf # 리뷰 논문
-└── ko/articles/
-    └── (FirstAuthor)(Year)_(Journal).md  # 최종 MD 노트 (원저만)
+└── (FirstAuthor)(Year)_(Journal)-review.pdf # 리뷰 논문
+ko/articles/
+└── (FirstAuthor)(Year)_(Journal).md         # 원저 연구 노트 (이 스킬)
+ko/reviews/
+└── (FirstAuthor)(Year)_(Journal).md         # 리뷰 노트 (SKILL_REVIEW.md)
 en/articles/
-    └── (FirstAuthor)(Year)_(Journal).md  # 영어 번역
+└── (FirstAuthor)(Year)_(Journal).md         # 영어 번역 (원저만)
 ```
 
 각 MD 파일의 최종 구조:
@@ -195,7 +199,7 @@ en/articles/
 
 ## 주의사항 (Batch Processing Lessons)
 - **덮어쓰기 위험**: 동일 target name이 추천되면 조용히 덮어씀 → dry-run 필수
-- **리뷰 구분**: 리뷰 논문은 `-review.pdf` 접미사, MD 노트 생성 제외
+- **리뷰 구분**: 리뷰 논문은 `-review.pdf` 접미사, `ko/reviews/`에 별도 생성 (`SKILL_REVIEW.md` 참조)
 - **저자 추출 한계**: PDF별 author format 편차 큼 → 반드시 DOI로 논문 조회 후 직접 확인
 - **저널 매핑 한계**: `process_pdf.py`의 저널 prefix 매핑은 주요 저널 위주로만 되어 있음 (Science → Development 등 오류 발생). DOI prefix 확인 후 수동 보정 필요
 - **대용량 PDF 타임아웃**: 15+ 페이지 PDF는 텍스트 추출에 수 분 소요 → extract_text()에 페이지 제한 고려
