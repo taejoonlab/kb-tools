@@ -3,21 +3,26 @@
 PDF -> Obsidian MD 변환 워크플로우 자동화 스크립트
 
 사용법:
-  python3 process_pdf.py /path/to/paper.pdf [--dry-run]
+  python3 process_pdf.py /path/to/paper.pdf [--dry-run] [--no-rename] [--output-dir DIR] [--force-review]
 
 기능:
   1. PyMuPDF로 텍스트 추출 (pymupdf, max 30 pages)
   2. DOI -> CrossRef API로 저자명, DOI prefix map으로 저널명 검색
-  3. 리뷰 논문 자동 판별 (VIEWPOINT, Review Article 등)
+  3. 리뷰 논문 자동 판별 (파일명 -review 접미사 또는 본문 키워드)
   4. (FirstAuthor)(Year)_(Journal)[-review].pdf 형식으로 이름 변경
   5. 대상 파일명 충돌 체크 (존재 시 abort)
-  6. notes/에 MD 스켈레톤 + 추출 텍스트 파일 생성
+  6. notes/에 추출 텍스트 저장, --output-dir 위치에 MD 스켈레톤 생성
   7. 00_processing_log.md 업데이트
+
+옵션:
+  --dry-run       실제 파일 변경 없이 제안 내용만 출력
+  --no-rename     PDF 파일명 변경 생략 (이미 올바른 형식인 경우)
+  --output-dir    MD 스켈레톤 생성 위치 (기본: pdf 디렉토리의 notes/ 하위)
+  --force-review  리뷰 논문으로 강제 지정 (파일명에 -review 포함 시 자동 적용)
 
 주의:
   - CrossRef API 접근을 위해 인터넷 연결 필요 (실패 시 regex fallback)
   - 저널명은 DOI prefix map 우선, 텍스트 기반 검색은 차선으로만 사용
-  - 리뷰 논문은 -review 접미사, MD 파일은 스켈레톤만 생성 (내용 안 채움)
   - 이름 충돌 시 abort 후 수동 확인 필요
   - dry-run으로 제안된 이름을 반드시 검증한 후 실제 rename
 
@@ -314,8 +319,9 @@ def suggest_target_name(pdf_path: str, text: str, doi: Optional[str]) -> str:
     return f"{author}{year}_{j_short}{suffix}.pdf"
 
 
-def create_md_skeleton(pdf_path: str, target_basename: str, doi: Optional[str]) -> str:
-    """MD 파일 스켈레톤 생성"""
+def create_md_skeleton(pdf_path: str, target_basename: str, doi: Optional[str],
+                        output_dir: Optional[str] = None) -> str:
+    """원저 논문 MD 파일 스켈레톤 생성"""
     md_content = f"""# TITLE_PLACEHOLDER
 
 ## Citation (NLM)
@@ -347,10 +353,69 @@ TODO
 
 TODO
 """
-    notes_dir = Path(pdf_path).parent / "notes"
-    notes_dir.mkdir(exist_ok=True)
+    if output_dir:
+        out_dir = Path(output_dir)
+    else:
+        out_dir = Path(pdf_path).parent / "notes"
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    md_path = notes_dir / f"{Path(target_basename).stem}.md"
+    md_path = out_dir / f"{Path(target_basename).stem}.md"
+    md_path.write_text(md_content, encoding='utf-8')
+
+    return str(md_path)
+
+
+def create_review_md_skeleton(pdf_path: str, target_basename: str, doi: Optional[str],
+                               output_dir: Optional[str] = None) -> str:
+    """리뷰 논문 MD 파일 스켈레톤 생성 (리뷰 전용 섹션)"""
+    md_content = f"""# TITLE_PLACEHOLDER
+
+## Citation (NLM)
+NLM_CITATION_PLACEHOLDER
+
+**DOI:** [https://doi.org/{doi if doi else 'PLACEHOLDER'}](https://doi.org/{doi if doi else 'PLACEHOLDER'})
+
+---
+
+## Overview
+
+TODO — 리뷰의 주제, 배경, 목적 및 전체 범위
+
+---
+
+## Key Topics
+
+TODO — 리뷰에서 다루는 주요 주제별 정리
+
+---
+
+## Key Findings
+
+TODO — 핵심 내용, 결론, 중요한 인사이트
+
+---
+
+## Perspective
+
+TODO — 의의, 한계, 향후 연구 방향
+
+---
+
+## Key References
+
+TODO — 핵심 참고 문헌 목록 (저자 연도, 저널, DOI 링크)
+"""
+    if output_dir:
+        out_dir = Path(output_dir)
+    else:
+        out_dir = Path(pdf_path).parent / "notes"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # -review 접미사 제거하여 MD 파일명 생성
+    stem = Path(target_basename).stem
+    if stem.endswith('-review'):
+        stem = stem[:-len('-review')]
+    md_path = out_dir / f"{stem}.md"
     md_path.write_text(md_content, encoding='utf-8')
 
     return str(md_path)
@@ -368,11 +433,19 @@ def update_log(pdf_dir: str, entry: str):
 
 def main():
     if len(sys.argv) < 2:
-        print("사용법: python3 process_pdf.py <pdf_path> [--dry-run]")
+        print("사용법: python3 process_pdf.py <pdf_path> [--dry-run] [--no-rename] [--output-dir DIR] [--force-review]")
         sys.exit(1)
 
     pdf_path = sys.argv[1]
     dry_run = "--dry-run" in sys.argv
+    no_rename = "--no-rename" in sys.argv
+    force_review = "--force-review" in sys.argv
+
+    output_dir = None
+    if "--output-dir" in sys.argv:
+        idx = sys.argv.index("--output-dir")
+        if idx + 1 < len(sys.argv):
+            output_dir = sys.argv[idx + 1]
 
     if not os.path.exists(pdf_path):
         print(f"파일 없음: {pdf_path}")
@@ -392,10 +465,15 @@ def main():
     doi = extract_doi(text)
     print(f"   DOI: {doi if doi else 'Not found'}")
 
-    # 리뷰/원저 판별
-    is_review = detect_review(text)
-    if is_review:
-        print(f"   유형: 리뷰 논문 (MD 생성 제외, -review 접미사)")
+    # 리뷰/원저 판별: 파일명 -review 접미사 우선, 그 다음 본문 키워드, 마지막으로 --force-review
+    stem = Path(pdf_path).stem
+    if stem.endswith('-review') or force_review:
+        is_review = True
+        print(f"   유형: 리뷰 논문 (파일명 기반)")
+    else:
+        is_review = detect_review(text)
+        if is_review:
+            print(f"   유형: 리뷰 논문 (본문 키워드 기반)")
 
     # 대상 파일명 제안
     target_name = suggest_target_name(pdf_path, text, doi)
@@ -414,21 +492,18 @@ def main():
         else:
             print(f"      (dry-run - 계속 진행)")
 
-    # MD 스켈레톤 생성 (리뷰는 skeleton만 만들고 TODO 표시)
-    md_path = create_md_skeleton(pdf_path, target_name, doi)
+    # MD 스켈레톤 생성
     if is_review:
-        md_path_obj = Path(md_path)
-        md_path_obj.write_text(md_path_obj.read_text().replace(
-            "# TITLE_PLACEHOLDER",
-            "# TITLE_PLACEHOLDER (REVIEW - MD 생성 대상 아님)"
-        ))
+        md_path = create_review_md_skeleton(pdf_path, target_name, doi, output_dir)
+    else:
+        md_path = create_md_skeleton(pdf_path, target_name, doi, output_dir)
     print(f"   MD 파일: {md_path}")
 
     # PDF 이름 변경
     old_name = pdf_name
 
-    if pdf_name == target_name:
-        print(f"   PDF 이름: 이미 올바른 형식")
+    if no_rename or pdf_name == target_name:
+        print(f"   PDF 이름: 변경 생략 ({pdf_name})")
     elif dry_run:
         print(f"   PDF 이름: {pdf_name} -> {target_name} (dry-run)")
     else:
@@ -436,23 +511,24 @@ def main():
         print(f"   PDF 이름: {pdf_name} -> {target_name}")
 
     # Log 업데이트
-    review_tag = " [REVIEW]" if is_review else ""
-    log_entry = f"|{review_tag} | {target_name} (renamed from {old_name}) | {Path(md_path).name} | [DONE] Done |"
+    review_tag = "[REVIEW] " if is_review else ""
+    log_entry = f"| {review_tag}{target_name} (from {old_name}) | {Path(md_path).name} | [DONE] Done |"
     if not dry_run:
         update_log(pdf_dir, log_entry)
 
-    # 텍스트 추출본 저장
-    txt_path = f"{Path(md_path).stem}_extracted.txt"
-    txt_full = Path(pdf_dir) / "notes" / txt_path
+    # 텍스트 추출본 저장 (항상 notes/ 에 저장)
+    txt_stem = Path(target_name).stem
+    txt_full = Path(pdf_dir) / "notes" / f"{txt_stem}_extracted.txt"
     if not dry_run:
+        Path(pdf_dir, "notes").mkdir(exist_ok=True)
         txt_full.write_text(text[:50000], encoding='utf-8')
         print(f"   텍스트 추출본: {txt_full}")
 
     print(f"[DONE] 완료: {target_name}")
-    if not is_review:
-        print(f"   -> notes/ 디렉토리의 MD 파일 내용을 LLM이 채우도록 요청하세요.")
+    if is_review:
+        print(f"   -> {md_path} 의 내용을 LLM이 채우도록 요청하세요. (리뷰 전용 섹션)")
     else:
-        print(f"   -> 리뷰 논문이므로 MD 내용 생성은 건너뜁니다.")
+        print(f"   -> notes/ 디렉토리의 MD 파일 내용을 LLM이 채우도록 요청하세요.")
 
 
 if __name__ == "__main__":
