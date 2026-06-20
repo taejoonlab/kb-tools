@@ -134,18 +134,18 @@ done
 ```
 ---
 
-*Processed by **DeepSeek V4 Flash** (OpenCode Go) on 2026-06-06*
+*Processed by **Qwen3.6 Plus** (opencode-go) on 2026-06-20*
 ```
 
-- `{LLM_MODEL}`: 사용한 LLM (예: `DeepSeek V4 Flash`, `Claude Sonnet 4`, `GPT-4o`)
-- `{TOOL}`: 사용한 도구 (예: `OpenCode Go`, `Claude Code`)
+- `{LLM_MODEL}`: 사용한 LLM 모델명 (예: `Qwen3.6 Plus`, `Claude Sonnet 4`, `GPT-4o`) — 도구명과 구분하여 정확한 모델명 기재
+- `{TOOL}`: 사용한 도구 (예: `opencode-go`, `Claude Code`)
 - `{YYYY-MM-DD}`: 처리 완료일
 
 목적: (1) 노트 생성에 사용된 LLM 추적, (2) 향후 업데이트 시 동일 모델로 일관성 유지, (3) vault의 provenance 기록.
 
 ```bash
 # 개별 파일
-printf '\n---\n\n*Processed by **DeepSeek V4 Flash** (OpenCode Go) on 2026-06-06*\n' >> articles/filename.md
+printf '\n---\n\n*Processed by **Qwen3.6 Plus** (opencode-go) on 2026-06-20*\n' >> articles/filename.md
 
 # 배치 추가
 for f in {ko,en}/articles/*.md; do
