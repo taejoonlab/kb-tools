@@ -8,7 +8,7 @@ PDF → Obsidian MD processing toolkit for the [kb-chondro](https://github.com/t
 tools/
 ├── process_pdf.py           # PDF text extraction + DOI/author/journal auto-detection + file renaming
 ├── doi_journal_map.json     # DOI prefix → journal abbreviation mapping table
-├── WORKFLOW.md              # Detailed PDF processing workflow guide
+├── SKILL.md                 # Detailed PDF processing workflow guide
 └── README.md                # This file
 ```
 
@@ -81,7 +81,7 @@ cd .. && git add tools && git commit -m "update: tools submodule"
 
 ## Workflow
 
-See [WORKFLOW.md](WORKFLOW.md) for the full guide.
+See [SKILL.md](SKILL.md) for the full guide.
 
 Quick summary:
 1. **Classify**: Distinguish review vs. original research articles
