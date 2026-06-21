@@ -13,7 +13,11 @@
       "10.1016/j.gendis": "GenesDis",
       "10.1016/j.stem": "CellStemCell",
       "10.1016/j.devcel": "DevCell",
-      "10.1016/j.biomaterials": "Biomaterials"
+      "10.1016/j.biomaterials": "Biomaterials",
+      "10.1016/j.ccell": "CancerCell"
+    },
+    "AACR": {
+      "10.1158/2643": "CancerResCommun"
     },
     "Nature Publishing": {
       "10.1038/s41413": "BoneRes",
@@ -30,7 +34,12 @@
       "10.1038/s41392": "SignalTransductTargetTher",
       "10.1038/s41380": "MolPsychiatry",
       "10.1038/s12276": "ExpMolMed",
-      "10.1038/s41536": "NPJRegenMed"
+      "10.1038/s41536": "NPJRegenMed",
+      "10.1038/s41551": "NatBiomedEng",
+      "10.1038/s41570": "NatRevChem",
+      "10.1038/s41572": "NatRevDisPrimers",
+      "10.1038/s41574": "NatRevEndocrinol",
+      "10.1038/s41587": "NatBiotechnol"
     },
     "Science / AAAS": {
       "10.1126/science": "Science",
@@ -73,7 +82,9 @@
       "10.1186/s12891": "BMCMusculoskeletDisord",
       "10.1186/s13287": "StemCellResTher",
       "10.1186/s13075": "ArthritisResTher",
-      "10.1186/s12964": "CellCommunSignal"
+      "10.1186/s12964": "CellCommunSignal",
+      "10.1186/s13059": "GenomeBiol",
+      "10.1186/s40104": "AnimNutr"
     },
     "ASBMB / ASCB": {
       "10.1074/jbc": "JBC",
