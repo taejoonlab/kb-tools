@@ -14,7 +14,13 @@
       "10.1016/j.stem": "CellStemCell",
       "10.1016/j.devcel": "DevCell",
       "10.1016/j.biomaterials": "Biomaterials",
-      "10.1016/j.ccell": "CancerCell"
+      "10.1016/j.ccell": "CancerCell",
+      "10.1016/j.celrep": "CellRep",
+      "10.1016/j.crmeth": "CellRepMeth",
+      "10.1016/j.cels": "CellSyst",
+      "10.1016/j.device": "Device",
+      "10.1016/j.virusres": "VirusRes",
+      "10.1016/j.dnarep": "DNARepair"
     },
     "AACR": {
       "10.1158/2643": "CancerResCommun"
@@ -39,7 +45,21 @@
       "10.1038/s41570": "NatRevChem",
       "10.1038/s41572": "NatRevDisPrimers",
       "10.1038/s41574": "NatRevEndocrinol",
-      "10.1038/s41587": "NatBiotechnol"
+      "10.1038/s41587": "NatBiotechnol",
+      "10.1038/s41434": "GeneTher",
+      "10.1038/s41477": "NatPlants",
+      "10.1038/s41559": "NatEcolEvol",
+      "10.1038/s41567": "NatPhys",
+      "10.1038/s41576": "NatRevGenet",
+      "10.1038/s41578": "NatRevMater",
+      "10.1038/s41588": "NatGenet",
+      "10.1038/s41589": "NatChemBiol",
+      "10.1038/s41592": "NatMethods",
+      "10.1038/s41593": "NatNeurosci",
+      "10.1038/s41594": "NatStructMolBiol",
+      "10.1038/s41596": "NatProtoc",
+      "10.1038/s42256": "NatMachIntell",
+      "10.1038/d41586": "NatureNews"
     },
     "Science / AAAS": {
       "10.1126/science": "Science",
@@ -72,7 +92,8 @@
     },
     "ACS": {
       "10.1021/acsnano": "ACSNano",
-      "10.1021/acs.biochem": "Biochemistry"
+      "10.1021/acs.biochem": "Biochemistry",
+      "10.1021/acs.jproteome": "JProteomeRes"
     },
     "Frontiers": {
       "10.3389/fcell": "FrontCellDevBiol",
@@ -84,7 +105,9 @@
       "10.1186/s13075": "ArthritisResTher",
       "10.1186/s12964": "CellCommunSignal",
       "10.1186/s13059": "GenomeBiol",
-      "10.1186/s40104": "AnimNutr"
+      "10.1186/s40104": "AnimNutr",
+      "10.1186/s12915": "BMCBiol",
+      "10.1186/s12276": "ExpMolMed"
     },
     "ASBMB / ASCB": {
       "10.1074/jbc": "JBC",
@@ -102,6 +125,9 @@
     "OUP / others": {
       "10.1093/nar": "NucleicAcidsRes",
       "10.1093/hmg": "HumMolGenet",
+      "10.1093/genetics": "Genetics",
+      "10.1093/g3journal": "G3",
+      "10.1093/bioinformatics": "Bioinformatics",
       "10.3899/jrheum": "JRheumatol"
     },
     "Sage": {
@@ -118,7 +144,12 @@
       "10.1155/": "__HINDAWI__"
     },
     "bioRxiv / medRxiv": {
-      "10.1101/": "bioRxiv"
+      "10.1101/": "bioRxiv",
+      "10.64898/": "bioRxiv"
+    },
+    "NEJM / Thieme": {
+      "10.1056/": "NEJM",
+      "10.7150/thno": "Theranostics"
     },
     "Wiley (additional)": {
       "10.1002/advs": "AdvSci",

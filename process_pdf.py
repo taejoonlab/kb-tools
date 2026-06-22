@@ -34,9 +34,18 @@ import sys
 import os
 import re
 import json
+import signal
 import subprocess
 from pathlib import Path
 from typing import Optional
+
+
+class ProcessingTimeout(Exception):
+    pass
+
+
+def _timeout_handler(signum, frame):
+    raise ProcessingTimeout("PDF 처리 시간 초과 (timeout)")
 
 # pip install pymupdf
 try:
@@ -433,7 +442,7 @@ def update_log(pdf_dir: str, entry: str):
 
 def main():
     if len(sys.argv) < 2:
-        print("사용법: python3 process_pdf.py <pdf_path> [--dry-run] [--no-rename] [--output-dir DIR] [--force-review]")
+        print("사용법: python3 process_pdf.py <pdf_path> [--dry-run] [--no-rename] [--output-dir DIR] [--force-review] [--timeout SECS]")
         sys.exit(1)
 
     pdf_path = sys.argv[1]
@@ -441,12 +450,31 @@ def main():
     no_rename = "--no-rename" in sys.argv
     force_review = "--force-review" in sys.argv
 
+    timeout_secs = 10
+    if "--timeout" in sys.argv:
+        idx = sys.argv.index("--timeout")
+        if idx + 1 < len(sys.argv):
+            timeout_secs = int(sys.argv[idx + 1])
+
     output_dir = None
     if "--output-dir" in sys.argv:
         idx = sys.argv.index("--output-dir")
         if idx + 1 < len(sys.argv):
             output_dir = sys.argv[idx + 1]
 
+    signal.signal(signal.SIGALRM, _timeout_handler)
+    signal.alarm(timeout_secs)
+
+    try:
+      _main_body(pdf_path, dry_run, no_rename, force_review, output_dir)
+    except ProcessingTimeout:
+        print(f"[SKIP] {pdf_path}: 처리 시간 초과 ({timeout_secs}초)")
+        sys.exit(2)
+    finally:
+        signal.alarm(0)
+
+
+def _main_body(pdf_path, dry_run, no_rename, force_review, output_dir):
     if not os.path.exists(pdf_path):
         print(f"파일 없음: {pdf_path}")
         sys.exit(1)
