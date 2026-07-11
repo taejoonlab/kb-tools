@@ -328,10 +328,29 @@ def suggest_target_name(pdf_path: str, text: str, doi: Optional[str]) -> str:
     return f"{author}{year}_{j_short}{suffix}.pdf"
 
 
+def prompt_tag() -> str:
+    """태그(YYYY-MM) 입력 프롬프트"""
+    import sys
+    print("\n태그를 입력하세요 (예: 2026-06, Enter=2026-07): ", end="", flush=True)
+    try:
+        tag = sys.stdin.readline().strip()
+    except:
+        tag = ""
+    if not tag:
+        from datetime import datetime
+        tag = datetime.now().strftime("%Y-%m")
+    return tag
+
+
 def create_md_skeleton(pdf_path: str, target_basename: str, doi: Optional[str],
                         output_dir: Optional[str] = None) -> str:
     """원저 논문 MD 파일 스켈레톤 생성"""
-    md_content = f"""# TITLE_PLACEHOLDER
+    tag = prompt_tag()
+    md_content = f"""---
+tags: [{tag}]
+---
+
+# TITLE_PLACEHOLDER
 
 ## Citation (NLM)
 NLM_CITATION_PLACEHOLDER
@@ -377,7 +396,12 @@ TODO
 def create_review_md_skeleton(pdf_path: str, target_basename: str, doi: Optional[str],
                                output_dir: Optional[str] = None) -> str:
     """리뷰 논문 MD 파일 스켈레톤 생성 (리뷰 전용 섹션)"""
-    md_content = f"""# TITLE_PLACEHOLDER
+    tag = prompt_tag()
+    md_content = f"""---
+tags: [{tag}]
+---
+
+# TITLE_PLACEHOLDER
 
 ## Citation (NLM)
 NLM_CITATION_PLACEHOLDER

@@ -68,9 +68,18 @@ done
 ### Step 2: MD 내용 생성 (LLM에 요청)
 **원저 연구 논문만** 이 스킬로 처리한다. 리뷰 논문은 `SKILL_REVIEW.md`를 사용한다.
 
+### Tag 입력 필수
+MD 파일 생성 전, **반드시 태그(읽은 년월, YYYY-MM 형식)를 입력**받는다.
+- `process_pdf.py`가 자동으로 프롬프트를 띄우며, Enter 시 오늘 날짜 기준 태그가 설정된다.
+- YAML frontmatter에 `tags: [YYYY-MM]` 형식으로 포함된다.
+
 추출된 텍스트를 읽고 아래 형식으로 `ko/articles/` 에 Obsidian markdown 파일을 생성:
 
 ```
+---
+tags: [YYYY-MM]
+---
+
 # 논문 제목
 
 ## Citation (NLM)

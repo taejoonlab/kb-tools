@@ -47,6 +47,11 @@ done
 >    ko/pdf/notes/Author2024_Journal-review_extracted.txt
 > ```
 
+### Tag 입력 필수
+MD 파일 생성 전, **반드시 태그(읽은 년월, YYYY-MM 형식)를 입력**받는다.
+- `process_pdf.py`가 자동으로 프롬프트를 띄우며, Enter 시 오늘 날짜 기준 태그가 설정된다.
+- YAML frontmatter에 `tags: [YYYY-MM]` 형식으로 포함된다.
+
 ### Step 2: MD 내용 생성 (LLM에 요청)
 
 `ko/pdf/notes/Author2024_Journal-review_extracted.txt` 를 읽고
@@ -55,6 +60,10 @@ done
 **리뷰 노트 형식 (원저와 다름)**:
 
 ```
+---
+tags: [YYYY-MM]
+---
+
 # 논문 전체 제목
 
 ## Citation (NLM)
