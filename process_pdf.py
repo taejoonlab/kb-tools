@@ -328,6 +328,8 @@ def suggest_target_name(pdf_path: str, text: str, doi: Optional[str]) -> str:
     return f"{author}{year}_{j_short}{suffix}.pdf"
 
 
+_VAULT_ROOT = _SCRIPT_DIR.parent
+
 def prompt_tag() -> str:
     """태그(YYYY-MM) 입력 프롬프트"""
     import sys
@@ -342,12 +344,36 @@ def prompt_tag() -> str:
     return tag
 
 
-def create_md_skeleton(pdf_path: str, target_basename: str, doi: Optional[str],
+def _extract_date() -> str:
+    """오늘 날짜 (extract 파일명용 YYYY-MM-DD)"""
+    from datetime import datetime
+    return datetime.now().strftime("%Y-%m-%d")
+
+
+def save_extract(pdf_name: str, text: str, dry_run: bool = False):
+    """추출 텍스트를 /extract/YYYY-MM-DD.txt 에 추가"""
+    date_str = _extract_date()
+    extract_dir = _VAULT_ROOT / "extract"
+    extract_dir.mkdir(parents=True, exist_ok=True)
+    out_path = extract_dir / f"{date_str}.txt"
+    if dry_run:
+        print(f"   추출 저장: {out_path} ({len(text)} chars)")
+        return
+    with open(out_path, "a", encoding="utf-8") as f:
+        f.write(f"===== {pdf_name} =====\n\n")
+        f.write(text)
+        f.write("\n\n=====\n\n")
+    print(f"   추출 저장: {out_path}")
+
+
+def create_md_skeleton(pdf_path: str, pdf_name: str, target_basename: str, doi: Optional[str],
                         output_dir: Optional[str] = None) -> str:
     """원저 논문 MD 파일 스켈레톤 생성"""
     tag = prompt_tag()
+    extract_d = _extract_date()
     md_content = f"""---
 tags: [{tag}]
+extract: {extract_d}
 ---
 
 # TITLE_PLACEHOLDER
@@ -393,12 +419,14 @@ TODO
     return str(md_path)
 
 
-def create_review_md_skeleton(pdf_path: str, target_basename: str, doi: Optional[str],
+def create_review_md_skeleton(pdf_path: str, pdf_name: str, target_basename: str, doi: Optional[str],
                                output_dir: Optional[str] = None) -> str:
     """리뷰 논문 MD 파일 스켈레톤 생성 (리뷰 전용 섹션)"""
     tag = prompt_tag()
+    extract_d = _extract_date()
     md_content = f"""---
 tags: [{tag}]
+extract: {extract_d}
 ---
 
 # TITLE_PLACEHOLDER
@@ -546,9 +574,9 @@ def _main_body(pdf_path, dry_run, no_rename, force_review, output_dir):
 
     # MD 스켈레톤 생성
     if is_review:
-        md_path = create_review_md_skeleton(pdf_path, target_name, doi, output_dir)
+        md_path = create_review_md_skeleton(pdf_path, pdf_name, target_name, doi, output_dir)
     else:
-        md_path = create_md_skeleton(pdf_path, target_name, doi, output_dir)
+        md_path = create_md_skeleton(pdf_path, pdf_name, target_name, doi, output_dir)
     print(f"   MD 파일: {md_path}")
 
     # PDF 이름 변경
@@ -568,13 +596,8 @@ def _main_body(pdf_path, dry_run, no_rename, force_review, output_dir):
     if not dry_run:
         update_log(pdf_dir, log_entry)
 
-    # 텍스트 추출본 저장 (항상 notes/ 에 저장)
-    txt_stem = Path(target_name).stem
-    txt_full = Path(pdf_dir) / "notes" / f"{txt_stem}_extracted.txt"
-    if not dry_run:
-        Path(pdf_dir, "notes").mkdir(exist_ok=True)
-        txt_full.write_text(text[:50000], encoding='utf-8')
-        print(f"   텍스트 추출본: {txt_full}")
+    # 텍스트 추출본 저장 (extract/ 에 추가)
+    save_extract(pdf_name, text[:50000], dry_run)
 
     print(f"[DONE] 완료: {target_name}")
     if is_review:
