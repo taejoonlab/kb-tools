@@ -1,3 +1,13 @@
+<!--
+trigger:  수업 참고 논문 PDF 1개를 CLASS 형식 Obsidian MD 노트로 변환할 때
+input:    PDF 파일 경로 ({lang}/pdf/*.pdf)
+output:   {lang}/others/{Author}{Year}_{Journal}_{Keyword}.md  (분류 전 임시)
+          → 리뷰 후 {lang}/{population|forward|reverse}/로 이동
+          {lang}/pdf/notes/{stem}_extracted.txt
+script:   process_pdf_class.py
+related:  SKILL.md (원저), SKILL_REVIEW.md (리뷰), SKILLS.md (전체 인덱스)
+-->
+
 # PDF → Obsidian CLASS MD Workflow (수업용 노트)
 
 ## 개요

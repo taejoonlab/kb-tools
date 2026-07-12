@@ -1,3 +1,13 @@
+<!--
+trigger:  리뷰 논문 PDF 1개를 Obsidian MD 노트로 변환할 때
+          (파일명에 -review 접미사, 또는 제목/초록에 "Review Article" 명시)
+input:    PDF 파일 경로 ({lang}/pdf/*-review.pdf)
+output:   {lang}/reviews/{Author}{Year}_{Journal}.md  (-review 접미사 제거)
+          {lang}/pdf/notes/{stem}_extracted.txt
+script:   process_pdf.py --no-rename --output-dir {lang}/reviews/
+related:  SKILL.md (원저 연구), SKILL_CLASS.md (수업용), SKILL_MONTHLY.md (대량 처리)
+-->
+
 # PDF → Obsidian Review MD Workflow
 
 ## 개요

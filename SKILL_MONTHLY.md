@@ -1,3 +1,13 @@
+<!--
+trigger:  수십~수백 개의 PDF를 한 번에 일괄 처리할 때
+input:    {lang}/pdf/ 아래의 PDF 파일들
+output:   {lang}/articles/*.md, {lang}/reviews/*.md
+          {lang}/pdf/notes/*_extracted.txt
+script:   process_pdf.py (반복 실행)
+related:  SKILL.md (단일 원저), SKILL_REVIEW.md (단일 리뷰)
+note:     경로 예시는 {VAULT}={vault 루트 절대경로}, {lang}=ko|en 으로 치환하여 사용
+-->
+
 # Monthly Batch PDF → Obsidian MD Workflow
 
 ## 개요
@@ -44,7 +54,7 @@ ls ko/pdf/*-review.pdf 2>/dev/null
 `process_pdf.py`로 현재 PDF들의 제안된 이름과 문제점을 한눈에 확인:
 
 ```bash
-cd /mnt/d/git/taejoon/kb-taejoon/ko/pdf
+cd {VAULT}/ko/pdf   # {VAULT}를 vault 루트 절대경로로 치환
 
 for f in *.pdf; do
   result=$(python3 ../../tools/process_pdf.py "$f" --dry-run 2>&1)

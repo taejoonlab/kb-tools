@@ -1,3 +1,12 @@
+<!--
+trigger:  원저 연구 논문 PDF 1개를 Obsidian MD 노트로 변환할 때
+input:    PDF 파일 경로 ({lang}/pdf/*.pdf, -review 접미사 없는 것)
+output:   {lang}/articles/{Author}{Year}_{Journal}.md
+          {lang}/pdf/notes/{stem}_extracted.txt
+script:   process_pdf.py
+related:  SKILL_REVIEW.md (리뷰 논문), SKILL_CLASS.md (수업용), SKILL_MONTHLY.md (대량 처리)
+-->
+
 # PDF → Obsidian MD Workflow
 
 ## 개요
