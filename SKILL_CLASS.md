@@ -37,31 +37,25 @@ pip install pymupdf
 
 ```bash
 # dry-run으로 제안 이름 확인
-python3 tools/process_pdf_class.py ko/pdf/paper.pdf \
-  --keywords "PopulationGenetics,GeneticDrift" \
-  --category population \
-  --dry-run
+python3 tools/process_pdf_class.py ko/pdf/paper.pdf --dry-run
 
 # 실제 실행 (파일명 변경 + 스켈레톤 생성)
-python3 tools/process_pdf_class.py ko/pdf/paper.pdf \
-  --keywords "PopulationGenetics,GeneticDrift" \
-  --category population
+python3 tools/process_pdf_class.py ko/pdf/paper.pdf
 ```
 
 옵션:
 
 | 옵션 | 설명 |
 |------|------|
-| `--keywords "kw1,kw2"` | 파일명 키워드 지정 (쉼표 구분, 최대 2개). 생략 시 제목에서 자동 추출 시도 |
-| `--category` | `population` / `forward` / `reverse` (YAML frontmatter에 반영, 기본: CATEGORY) |
 | `--dry-run` | 파일 변경 없이 제안 이름만 출력 |
 
-> **⚠️ 자동 추출은 자주 실패한다.** `--dry-run`으로 확인 후 키워드는 반드시 수동 지정 (`--keywords`)할 것.
+- 키워드는 제목에서 **자동 추출** (수동 지정 불필요)
+- 카테고리는 항상 `others`로 시작 — 노트 리뷰 후 frontmatter에서 변경
 
-### Step 1b: PDF 이름 직접 수정 (권장)
+### Step 1b: PDF 이름 직접 수정 (필요 시)
 
 ```bash
-# dry-run 결과 확인 후 수동 rename
+# 자동 추출 결과가 맞지 않으면 수동 rename
 mv "ko/pdf/Unknown2024_Unknown_KEYWORD.pdf" "ko/pdf/Lewontin1972_Genetics_GeneticVariation.pdf"
 ```
 
@@ -131,19 +125,31 @@ ARTICLE의 Background/Methods/Results를 하나의 흐름으로 통합.
 | Key References | REVIEW의 Key References와 동일 형식 | DOI 링크 필수, 설명 1줄 |
 | Future Research Directions | CLASS 전용 섹션 | 논문이 남긴 질문, 새 실험 아이디어, 기술 적용 가능성 |
 
-### Step 3: 파일 이동 + bilingual mirror
+### Step 3: 파일 이동 + 카테고리 분류
 
-노트 완성 후 해당 카테고리 폴더로 이동:
+노트 완성 후 `others/`로 먼저 이동하고, 내용 리뷰 후 최종 카테고리로 옮긴다:
 
 ```bash
-# ko 노트
-mv ko/pdf/notes/Author2024_Journal_Keyword.md ko/{category}/Author2024_Journal_Keyword.md
+# 1단계: others 에 배치
+mv ko/pdf/notes/Author2024_Journal_Keyword.md ko/others/Author2024_Journal_Keyword.md
 
-# en 노트 (영어 번역 — bilingual mirror 필수)
-# → 동일 파일명으로 en/{category}/ 에 영어 버전 생성
-cp ko/{category}/Author2024_Journal_Keyword.md en/{category}/Author2024_Journal_Keyword.md
-# (내용을 영어로 번역 후 태그 lang 변경: ko → en)
+# 2단계: 노트 내용 리뷰 후 카테고리 결정 → frontmatter 수정 + 파일 이동
+#   frontmatter: tags: [genetics, class, others, ko] → [genetics, class, population, ko]
+mv ko/others/Author2024_Journal_Keyword.md ko/population/Author2024_Journal_Keyword.md
+
+# en 노트 (bilingual mirror — 동시에 처리)
+cp ko/population/Author2024_Journal_Keyword.md en/population/Author2024_Journal_Keyword.md
+# tags 의 ko → en 으로 변경
 ```
+
+**카테고리 판단 기준**:
+
+| 카테고리 | 해당하는 내용 |
+|---------|-------------|
+| `population` | 집단유전학, 대립유전자 빈도, Hardy-Weinberg, 유전적 부동, 자연선택, 계통발생 |
+| `forward` | 표현형 우선 접근, 돌연변이 선별, positional cloning, EMS/ENU 처리 |
+| `reverse` | 유전자 우선 접근, knockout, RNAi, CRISPR 스크린, 형질전환 모델 |
+| `others` | 위 셋에 명확히 속하지 않는 논문 (분류 보류) |
 
 ### Step 4: LLM 처리 메타데이터 기록
 
@@ -173,14 +179,16 @@ commit 메시지 형식: `{action}: {lang}/{category} {Author}{Year}_{Journal}_{
 
 ```
 ko/pdf/
-└── Author2024_Journal_Keyword.pdf          # 원본 PDF (gitignored)
+└── Author2024_Journal_Keyword.pdf              # 원본 PDF (gitignored)
 ko/pdf/notes/
-├── Author2024_Journal_Keyword_extracted.txt  # 추출 텍스트 (gitignored)
+├── Author2024_Journal_Keyword_extracted.txt    # 추출 텍스트 (gitignored)
 └── 00_processing_log.md
-ko/{category}/
-└── Author2024_Journal_Keyword.md           # 한국어 CLASS 노트 (tracked)
-en/{category}/
-└── Author2024_Journal_Keyword.md           # 영어 CLASS 노트 (tracked)
+ko/others/
+└── Author2024_Journal_Keyword.md               # 초기 배치 (분류 전)
+ko/population/                                  # 분류 후 이동
+└── Author2024_Journal_Keyword.md
+en/population/
+└── Author2024_Journal_Keyword.md               # bilingual mirror
 ```
 
 ## SKILL 비교
@@ -196,8 +204,9 @@ en/{category}/
 
 ## 주의사항
 
-- **키워드 수동 지정 권장**: `--keywords` 없이 자동 추출하면 의미없는 단어가 들어갈 수 있음
-- **카테고리 필수 지정**: `--category` 를 빠뜨리면 frontmatter에 `CATEGORY` 플레이스홀더가 남음
+- **키워드 자동 추출 한계**: 제목에서 의미없는 단어가 나올 수 있음 → `_KEYWORD` 플레이스홀더가 남으면 수동 rename
+- **카테고리는 others에서 시작**: 스크립트가 자동으로 `others`를 지정하므로 `--category` 옵션 없음
+- **분류는 노트 리뷰 후**: frontmatter의 tag 수정 + `mv` 명령으로 최종 카테고리로 이동
 - **Key References DOI 링크 필수**: DOI 없는 문헌은 제외하거나 저널 홈페이지 링크 대체
 - **bilingual mirror 필수**: ko/en 쌍으로 생성, en 버전 tags의 `ko` → `en` 변경 잊지 말 것
 - **dry-run 먼저**: 키워드 포함 파일명 충돌 가능성 있으므로 반드시 dry-run 확인 후 실행

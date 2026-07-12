@@ -244,8 +244,7 @@ def slugify_keyword(kw: str) -> str:
     return ''.join(p.capitalize() for p in parts if p)
 
 
-def suggest_target_name(pdf_path: str, text: str, doi: Optional[str],
-                        user_keywords: Optional[list[str]] = None) -> str:
+def suggest_target_name(pdf_path: str, text: str, doi: Optional[str]) -> str:
     """{FirstAuthor}{Year}_{Journal}_{Kw1}[-{Kw2}].pdf 형식 제안."""
     author = extract_first_author(text, doi)
     year = extract_year(text)
@@ -258,7 +257,6 @@ def suggest_target_name(pdf_path: str, text: str, doi: Optional[str],
             author = m.group(1).capitalize()
             year = year or m.group(2)
         else:
-            # 파일명에서 첫 단어 추출
             author = re.sub(r'[^A-Za-z]', '', base.split('_')[0]) or "Unknown"
 
     if not year:
@@ -266,22 +264,14 @@ def suggest_target_name(pdf_path: str, text: str, doi: Optional[str],
 
     j_short = re.sub(r'[^A-Za-z0-9]', '', journal) if journal else "Unknown"
 
-    # 키워드 결정
-    if user_keywords:
-        kw_slugs = [slugify_keyword(k) for k in user_keywords[:2]]
-    else:
-        kw_slugs = extract_keywords_from_title(text, doi)
-
-    if kw_slugs:
-        kw_part = '_' + '-'.join(kw_slugs)
-    else:
-        kw_part = '_KEYWORD'
+    kw_slugs = extract_keywords_from_title(text, doi)
+    kw_part = '_' + '-'.join(kw_slugs) if kw_slugs else '_KEYWORD'
 
     return f"{author}{year}_{j_short}{kw_part}.pdf"
 
 
 def create_class_skeleton(pdf_path: str, target_basename: str, doi: Optional[str],
-                          category: str = "CATEGORY") -> str:
+                          category: str = "others") -> str:
     """CLASS 형식 MD 스켈레톤 생성."""
     today = datetime.date.today().isoformat()
     doi_str = doi if doi else "PLACEHOLDER"
@@ -361,10 +351,6 @@ def parse_args():
         description="CLASS PDF → Obsidian MD 변환 (수업용)"
     )
     parser.add_argument("pdf_path", help="처리할 PDF 파일 경로")
-    parser.add_argument("--keywords", "-k",
-                        help='파일명에 추가할 키워드 1-2개, 쉼표 구분 (예: "Population,Drift")')
-    parser.add_argument("--category", "-c", default="CATEGORY",
-                        help='노트 카테고리: population / forward / reverse (기본: CATEGORY)')
     parser.add_argument("--dry-run", action="store_true",
                         help="파일 변경 없이 제안 이름만 출력")
     return parser.parse_args()
@@ -383,10 +369,6 @@ def main():
     pdf_dir = os.path.dirname(pdf_path)
     pdf_name = os.path.basename(pdf_path)
 
-    user_keywords = None
-    if args.keywords:
-        user_keywords = [k.strip() for k in args.keywords.split(',') if k.strip()]
-
     print(f"📄 CLASS 처리 중: {pdf_name}")
 
     text = extract_text(pdf_path)
@@ -395,9 +377,9 @@ def main():
     doi = extract_doi(text)
     print(f"   DOI: {doi if doi else 'Not found'}")
 
-    target_name = suggest_target_name(pdf_path, text, doi, user_keywords)
+    target_name = suggest_target_name(pdf_path, text, doi)
     print(f"   제안 이름: {target_name}")
-    print(f"   카테고리: {args.category}")
+    print(f"   카테고리: others (노트 리뷰 후 frontmatter에서 변경)")
 
     if dry_run:
         print("   (dry-run — 파일 변경 없음)")
@@ -409,8 +391,8 @@ def main():
         print(f"   ⚠️  충돌: {target_name} 이미 존재 → abort. 수동 확인 후 rename 하세요.")
         sys.exit(1)
 
-    # MD 스켈레톤 생성
-    md_path = create_class_skeleton(pdf_path, target_name, doi, args.category)
+    # MD 스켈레톤 생성 (category 기본값 others)
+    md_path = create_class_skeleton(pdf_path, target_name, doi)
     print(f"   MD 파일: {md_path}")
 
     # PDF 이름 변경
