@@ -299,8 +299,43 @@ def detect_review(text: str) -> bool:
     return False
 
 
+def detect_preprint(text: str) -> Optional[str]:
+    """bioRxiv/medRxiv preprint 여부 감지 (journal lookup 전에 실행)"""
+    head = text[:3000].lower()
+    doi = extract_doi(text)
+    if doi:
+        doi_lower = doi.lower()
+        if 'biorxiv' in doi_lower:
+            return 'bioRxiv'
+        if 'medrxiv' in doi_lower:
+            return 'medRxiv'
+    if re.search(r'\b(bioRxiv|biorxiv|bioRχiv)\b', head):
+        return 'bioRxiv'
+    if re.search(r'\b(medRxiv|medrxiv)\b', head):
+        return 'medRxiv'
+    return None
+
+
 def suggest_target_name(pdf_path: str, text: str, doi: Optional[str]) -> str:
     """FirstAuthorYear_Journal[-review].pdf 형식 제안"""
+    # Preprint detection first (before journal lookup)
+    preprint = detect_preprint(text)
+    if preprint:
+        author = extract_first_author(text, doi)
+        year = extract_year(text)
+        if not author:
+            base = Path(pdf_path).stem
+            m = re.match(r'^([A-Za-z]+)(20\d{2})', base)
+            if m:
+                author = m.group(1).capitalize()
+                year = year or m.group(2)
+            else:
+                author = "Unknown"
+        if not year:
+            year = "XXXX"
+        suffix = "-review" if detect_review(text) else ""
+        return f"{author}{year}_{preprint}{suffix}.pdf"
+
     author = extract_first_author(text, doi)
     year = extract_year(text)
     journal = extract_journal(text)

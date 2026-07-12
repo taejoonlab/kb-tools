@@ -83,14 +83,46 @@ def crossref_lookup(doi):
         return None, None, None
 
 
-def generate_name(author, year, journal):
+def detect_preprint(text):
+    """bioRxiv/medRxiv preprint 여부 감지 (journal lookup 전에 실행)"""
+    head = text[:3000].lower()
+    doi = extract_doi(text)
+    if doi:
+        doi_lower = doi.lower()
+        if 'biorxiv' in doi_lower:
+            return 'bioRxiv'
+        if 'medrxiv' in doi_lower:
+            return 'medRxiv'
+    if re.search(r'\b(bioRxiv|biorxiv|bioRχiv)\b', head):
+        return 'bioRxiv'
+    if re.search(r'\b(medRxiv|medrxiv)\b', head):
+        return 'medRxiv'
+    if re.search(r'\bPREPRINT\b', head[:500]):
+        if re.search(r'\b(bioRxiv|biorxiv)\b', head):
+            return 'bioRxiv'
+        if re.search(r'\b(medRxiv|medrxiv)\b', head):
+            return 'medRxiv'
+    return None
+
+
+def generate_name(author, year, journal, text=None):
+    # Preprint check first
+    if text:
+        preprint = detect_preprint(text)
+        if preprint:
+            if not author:
+                author = "Unknown"
+            if not year:
+                year = "XXXX"
+            return f"{author} {year}_{preprint}.pdf"
+    
     if not author:
         author = "Unknown"
     if not year:
         year = "XXXX"
     if not journal:
         journal = "Unknown"
-    return f"{author}{year}_{journal}.pdf"
+    return f"{author} {year}_{journal}.pdf"
 
 
 def main():
@@ -140,7 +172,7 @@ def main():
             errors += 1
             continue
 
-        correct_name = generate_name(author, year, journal)
+        correct_name = generate_name(author, year, journal, text=text)
         correct_stem = correct_name.replace(".pdf", "")
 
         if correct_name == f"{current_name}.pdf":

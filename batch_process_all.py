@@ -145,7 +145,38 @@ def extract_journal(text):
     return "Unknown"
 
 
+def detect_preprint(text):
+    """bioRxiv/medRxiv preprint 여부 감지 (journal lookup 전에 실행)"""
+    head = text[:3000].lower()
+    # DOI 체크 (biorxiv/medrxiv prefix)
+    doi = extract_doi(text)
+    if doi:
+        doi_lower = doi.lower()
+        if 'biorxiv' in doi_lower:
+            return 'bioRxiv'
+        if 'medrxiv' in doi_lower:
+            return 'medRxiv'
+    # 텍스트 키워드 체크
+    if re.search(r'\b(bioRxiv|biorxiv|bioRχiv)\b', head):
+        return 'bioRxiv'
+    if re.search(r'\b(medRxiv|medrxiv)\b', head):
+        return 'medRxiv'
+    if re.search(r'\bPREPRINT\b', head[:500]):
+        if re.search(r'\b(bioRxiv|biorxiv)\b', head):
+            return 'bioRxiv'
+        if re.search(r'\b(medRxiv|medrxiv)\b', head):
+            return 'medRxiv'
+    return None
+
+
 def suggested_name(text):
+    # Preprint detection first (before journal lookup)
+    preprint = detect_preprint(text)
+    if preprint:
+        author = extract_first_author(text)
+        year = extract_year(text)
+        return f"{author}{year}_{preprint}.pdf"
+    
     author = extract_first_author(text)
     year = extract_year(text)
     journal = extract_journal(text)
