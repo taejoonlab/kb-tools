@@ -413,7 +413,7 @@ def main():
 
     print(f"✅ 완료: {target_name}")
     print(f"   → notes/ 의 MD 스켈레톤을 LLM에 전달해 내용을 채우세요.")
-    print(f"   → 완성 후 {args.category}/ 폴더로 이동하세요.")
+    print(f"   → 완성 후 others/ → population/forward/reverse/ 로 이동하세요.")
 
 
 if __name__ == "__main__":

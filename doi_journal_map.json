@@ -30,7 +30,9 @@
       "10.1038/s41586": "Nature",
       "10.1038/s41467": "NatCommun",
       "10.1038/s41597": "SciData",
+      "10.1038/nrg": "NatRevGenet",
       "10.1038/nrdp": "NatRevDisPrimers",
+      "10.1038/s41576": "NatRevGenet",
       "10.1038/s41584": "NatRevRheumatol",
       "10.1038/s41556": "NatCellBiol",
       "10.1038/s41598": "SciRep",
@@ -66,10 +68,13 @@
       "10.1126/sciadv": "SciAdv",
       "10.1126/scitranslmed": "SciTranslMed"
     },
-    "PNAS / eLife": {
+    "PNAS / eLife / PLoS": {
       "10.1073/pnas": "PNAS",
       "10.7554/elife": "eLife",
-      "10.7554/eLife": "eLife"
+      "10.7554/eLife": "eLife",
+      "10.1371/journal.pgen": "PLoSGenet",
+      "10.1371/journal.pbio": "PLoSBiol",
+      "10.1371/journal.pcbi": "PLoSComputBiol"
     },
     "Wiley": {
       "10.1002/dvdy": "DevDyn",
