@@ -1,9 +1,10 @@
 <!--
 trigger:  수십~수백 개의 PDF를 한 번에 일괄 처리할 때
 input:    {lang}/pdf/ 아래의 PDF 파일들
-output:   {lang}/articles/*.md, {lang}/reviews/*.md
+output:   {lang}/articles/*.md, {lang}/reviews/*.md, {lang}/news/*.md
           {lang}/pdf/notes/*_extracted.txt
-script:   process_pdf.py (반복 실행)
+          extract/YYYY-MM-DD.txt (날짜별 통합, git tracked, 모니터링 필요)
+script:   process_pdf.py, batch_process_pdfs.py
 related:  SKILL.md (단일 원저), SKILL_REVIEW.md (단일 리뷰)
 note:     경로 예시는 {VAULT}={vault 루트 절대경로}, {lang}=ko|en 으로 치환하여 사용
 -->
@@ -20,14 +21,19 @@ note:     경로 예시는 {VAULT}={vault 루트 절대경로}, {lang}=ko|en 으
 3. **subagent는 1회 1개만**: 병렬 subagent는 최대 2개로 제한 (너무 많으면 에러 추적 불가)
 4. **dry-run 필수**: 실제 rename 전에 `--dry-run`으로 충돌·오류를 먼저 확인
 
-## 작업 흐름
+## 작업 흐름 (2단계 파이프라인)
 
 ```
-Step 0: PDF 목록 수집
-Step 1: Dry-run (전체)
-Step 2: Chunk 단위 rename + MD 스켈레톤 생성
-Step 3: Chunk 단위 MD 내용 채우기
-Step 4: 검증 및 commit
+Phase 1 (Python) — 텍스트 추출 + 파일명 정리 (확정적)
+  Step 0: PDF 목록 수집
+  Step 1: Dry-run (전체)
+  Step 2: Chunk 단위 rename + extract 생성
+  → ko/pdf/notes/*_extracted.txt, extract/YYYY-MM-DD.txt
+
+Phase 2 (LLM) — 추출 텍스트 → 상세 MD 노트 (지능적)
+  Step 3: Chunk 단위 MD 내용 채우기
+  → ko/articles/, ko/reviews/, ko/news/
+  Step 4: 검증 및 commit
 ```
 
 ---

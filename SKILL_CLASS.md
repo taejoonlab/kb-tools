@@ -70,7 +70,22 @@ python3 tools/process_pdf_class.py ko/pdf/paper.pdf
 mv "ko/pdf/Unknown2024_Unknown_KEYWORD.pdf" "ko/pdf/Lewontin1972_Genetics_GeneticVariation.pdf"
 ```
 
-### Step 2: MD 내용 생성 (LLM에 요청)
+## 2단계 파이프라인
+
+모든 노트 생성은 다음 2단계로 진행한다:
+
+```
+Phase 1 (Python): PDF → 텍스트 추출 + 파일명 정리
+  process_pdf[_class].py 실행
+  → ko/pdf/notes/{stem}_extracted.txt (추출 텍스트)
+  → extract/YYYY-MM-DD.txt (날짜별 통합, git tracked)
+
+Phase 2 (LLM): 추출 텍스트 → 상세 MD 노트
+  ko/pdf/notes/*_extracted.txt 를 LLM이 읽고 요약 작성
+  → ko/{category}/Author2024_Journal_Keyword.md
+```
+
+### Phase 2 (LLM): MD 내용 생성
 
 `ko/pdf/notes/{stem}_extracted.txt` 를 읽고 아래 형식으로 노트를 작성한다.
 

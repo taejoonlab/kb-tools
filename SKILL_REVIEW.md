@@ -22,11 +22,11 @@ related:  SKILL.md (원저 연구), SKILL_CLASS.md (수업용), SKILL_MONTHLY.md
 pip install pymupdf
 ```
 
-## 사용법
+## 사용법 (2단계 파이프라인)
 
-### Step 1: 텍스트 추출 (리뷰 PDF 전용 옵션)
+### Phase 1 (Python): 텍스트 추출 + 파일명 정리
 
-파일명이 이미 `(FirstAuthor)(Year)_(Journal)-review.pdf` 형식으로 확정되어 있으므로
+파일명이 이미 `(FirstAuthor)(Year)_(Journal)-review.pdf` 형식으로 확정되어 있다면
 `--no-rename` 과 `--output-dir` 을 반드시 지정한다.
 
 ```bash
@@ -44,25 +44,23 @@ done
 ```
 
 실행 결과:
-- `ko/reviews/Author2024_Journal.md` — 리뷰 전용 스켈레톤 생성 (`-review` 접미사 제거)
-- `extract/YYYY-MM-DD.txt` — 추출 텍스트 (날짜별 통합)
-- `ko/pdf/notes/00_processing_log.md` — 처리 이력 기록
+- `ko/pdf/notes/Author2024_Journal-review_extracted.txt` — 추출 텍스트
+- `extract/YYYY-MM-DD.txt` — 추출 텍스트 (날짜별 통합, git tracked)
+- `ko/reviews/Author2024_Journal.md` — TODO 스켈레톤
 
-> **⚠️ 파일명 교정 필수**: `process_pdf.py`의 저자·저널 자동 추출은 자주 실패한다.
-> `ko/reviews/` 에 생성된 스켈레톤 파일명이 원본 PDF명과 다르면 수동으로 교정한다.
-> ```bash
-> # PDF 파일명 기준으로 교정 예시
-> mv ko/reviews/Unknown2024_Unknown.md ko/reviews/Author2024_Journal.md
-> mv ko/pdf/notes/Unknown2024_Unknown-review_extracted.txt \
->    ko/pdf/notes/Author2024_Journal-review_extracted.txt
-> ```
+> **⚠️ `process_pdf.py`는 MD 스켈레톤만 생성**한다 (TODO placeholder).
+> 실제 상세 요약은 Phase 2에서 LLM이 처리한다.
 
-### Tag 입력 필수
-MD 파일 생성 전, **반드시 태그(읽은 년월, YYYY-MM 형식)를 입력**받는다.
-- `process_pdf.py`가 자동으로 프롬프트를 띄우며, Enter 시 오늘 날짜 기준 태그가 설정된다.
-- YAML frontmatter에 `tags: [YYYY-MM]` 형식으로 포함된다.
+### Phase 2 (LLM): 추출 텍스트 → 상세 MD 노트 생성
 
-### Step 2: MD 내용 생성 (LLM에 요청)
+`ko/pdf/notes/` 의 추출 텍스트를 읽고 LLM이 상세 요약을 작성한다.
+
+**LLM 처리 지시**:
+- `tags: [{태그}]` — 태그 입력 필수 (예: `2026-07-CINDELA`)
+- `extract: {YYYY-MM-DD}` — 오늘 날짜
+- 읽은 추출 텍스트 기반으로 각 섹션의 TODO를 상세 요약으로 대체
+
+### Phase 2: MD 내용 생성 (LLM에 요청)
 
 `ko/pdf/notes/Author2024_Journal-review_extracted.txt` 를 읽고
 아래 형식으로 `ko/reviews/Author2024_Journal.md` 를 작성한다.
