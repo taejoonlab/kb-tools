@@ -102,7 +102,14 @@
     },
     "Frontiers": {
       "10.3389/fcell": "FrontCellDevBiol",
-      "10.3389/fbioe": "FrontBioengBiotechnol"
+      "10.3389/fbioe": "FrontBioengBiotechnol",
+      "10.3389/fimmu": "FrontImmunol",
+      "10.3389/fmolb": "FrontMolBiosci",
+      "10.3389/fonc": "FrontOncol",
+      "10.3389/fcimb": "FrontCellInfectMicrobiol",
+      "10.3389/fgene": "FrontGenet",
+      "10.3389/fneur": "FrontNeurol",
+      "10.3389/fnins": "FrontNeurosci"
     },
     "BMC / Springer": {
       "10.1186/s12891": "BMCMusculoskeletDisord",
@@ -112,7 +119,11 @@
       "10.1186/s13059": "GenomeBiol",
       "10.1186/s40104": "AnimNutr",
       "10.1186/s12915": "BMCBiol",
-      "10.1186/s12276": "ExpMolMed"
+      "10.1186/s12276": "ExpMolMed",
+      "10.1186/s12859": "BMCBioinformatics",
+      "10.1186/s12920": "BMCMedGenomics",
+      "10.1186/s12885": "BMC Cancer",
+      "10.1186/s40425": "JImmunotherCancer"
     },
     "ASBMB / ASCB": {
       "10.1074/jbc": "JBC",
@@ -133,7 +144,18 @@
       "10.1093/genetics": "Genetics",
       "10.1093/g3journal": "G3",
       "10.1093/bioinformatics": "Bioinformatics",
+      "10.1093/gigascience": "GigaScience",
+      "10.1093/bfg": "BriefFunctGenomics",
       "10.3899/jrheum": "JRheumatol"
+    },
+    "PLoS": {
+      "10.1371/journal.pone": "PLoSONE",
+      "10.1371/journal.pgen": "PLoSGenet",
+      "10.1371/journal.pbio": "PLoSBiol",
+      "10.1371/journal.pcbi": "PLoSComputBiol"
+    },
+    "Molecules and Cells": {
+      "10.14348/molcells": "MolCells"
     },
     "Sage": {
       "10.1177/19476035": "Cartilage"
@@ -152,6 +174,33 @@
       "10.1101/": "bioRxiv",
       "10.64898/": "bioRxiv"
     },
+    "Nature (old format)": {
+      "10.1038/ncomms": "NatCommun",
+      "10.1038/nbt": "NatBiotechnol",
+      "10.1038/nrd": "NatRevDrugDisc",
+      "10.1038/nrm": "NatRevMolCellBiol",
+      "10.1038/nrc": "NatRevCancer",
+      "10.1038/nrg": "NatRevGenet",
+      "10.1038/nrmeth": "NatMethods",
+      "10.1038/nprot": "NatProtoc",
+      "10.1038/nn": "NatNeurosci",
+      "10.1038/ng": "NatGenet",
+      "10.1038/nm": "NatMed",
+      "10.1038/ncb": "NatCellBiol",
+      "10.1038/srep": "SciRep",
+      "10.1038/s41568": "NatRevCancer",
+      "10.1038/onc": "Oncogene",
+      "10.1038/sj.onc": "Oncogene",
+      "10.1038/leu": "Leukemia",
+      "10.1038/eye": "Eye",
+      "10.1038/jid": "JInvestDermatol",
+      "10.1038/ki": "KidneyInt",
+      "10.1038/sj.ki": "KidneyInt"
+    },
+    "Nature News / Reviews": {
+      "10.1038/d41573": "NatRevDrugDisc",
+      "10.1038/d43747": "NatureAsia"
+    },
     "NEJM / Thieme": {
       "10.1056/": "NEJM",
       "10.7150/thno": "Theranostics"
@@ -163,10 +212,10 @@
     },
     "MDPI": {
       "10.3390/cells": "Cells",
-      "10.3390/ijms": "IJMS"
-    },
-    "Frontiers (additional)": {
-      "10.3389/fgene": "FrontGenet"
+      "10.3390/ijms": "IJMS",
+      "10.3390/cancers": "Cancers",
+      "10.3390/genes": "Genes",
+      "10.3390/viruses": "Viruses"
     },
     "Wiley (Arthritis)": {
       "10.1002/art": "ArthritisRheum"

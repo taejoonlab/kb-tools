@@ -31,6 +31,30 @@ PDF를 **리뷰 논문**과 **원저 연구**로 분류한다.
 
 > 리뷰 논문 처리는 **`SKILL_REVIEW.md`** 참조
 
+### Companion Files: Supplement (-sm) / News (-news)
+
+일부 PDF는 원저 연구의 **추가 자료(Supplement)** 또는 **소개 글(Brief/News/News & Views/Comment)** 이다.
+이런 경우 다음 규칙으로 처리한다:
+
+| 유형 | 접미사 | 예시 | 설명 |
+|------|--------|------|------|
+| Supplement | `-sm` | `Gillmore2021_NEJM_ATTR-Intellia-sm.pdf` | Supplementary Appendix, Supporting Information 등 원 논문의 부속 자료 |
+| News/Comment | `-news` | `Conti2018_GenomeMedicine-news.pdf` | 특정 논문을 소개/해설하는 Brief, News & Views, Comment, Editorial |
+
+**식별 기준**:
+- `-sm`: 첫 페이지에 "Supplementary Appendix", "Supporting Information", "This appendix has been provided…" 명시
+- `-news`: 첫 페이지에 "COMMENT", "News & Views", "Editorial summary" 등의 라벨
+
+**Extract 병합 규칙**:
+- Companion 파일의 추출 텍스트는 **원 논문의 extract에 추가(append)** 한다.
+- 최종 extract는 원 논문을 기준으로 하나의 파일로 통합된다.
+- `notes/` 내 extract 파일에서 `===== [SM] ... =====` 또는 `===== [NEWS] ... =====` 구분자로 병합 내용을 확인할 수 있다.
+
+**파일명 규칙**:
+- Supplement: 원 논문의 파일명에 `-sm`을 추가 (`{MainStem}-sm.pdf`)
+- News/Comment: 원 논문의 파일명에 `-news`를 추가 (`{MainStem}-news.pdf`)
+- 여러 논문을 참조하는 Comment의 경우, 가장 관련된 논문의 extract에 병합
+
 ### Step 1: PDF 텍스트 추출 + 파일명 정리 (1회 1개 PDF)
 ```bash
 python3 process_pdf.py <pdf_path> [--dry-run]
@@ -189,15 +213,24 @@ commit 메시지 형식: `{action}: {lang} {description}` (예: `add: en Wu2021_
 ## 파일 구조
 ```
 ko/pdf/
-├── (FirstAuthor)(Year)_(Journal).pdf        # 원저 연구
-└── (FirstAuthor)(Year)_(Journal)-review.pdf # 리뷰 논문
+├── (FirstAuthor)(Year)_(Journal).pdf                # 원저 연구
+├── (FirstAuthor)(Year)_(Journal)-review.pdf         # 리뷰 논문
+├── (FirstAuthor)(Year)_(Journal)-sm.pdf             # Supplement (부속 자료)
+├── (FirstAuthor)(Year)_(Journal)-news.pdf           # News/Comment (소개 글)
+├── (Journal)(Year)-news-(Keyword).pdf               # 독립형 뉴스 (d41573 등)
+└── NatureAsia(Year)-news-(Keyword).pdf              # Advertorial
 ko/articles/
-└── (FirstAuthor)(Year)_(Journal).md         # 원저 연구 노트 (이 스킬)
+└── (FirstAuthor)(Year)_(Journal).md                 # 원저 연구 노트 (이 스킬)
 ko/reviews/
-└── (FirstAuthor)(Year)_(Journal).md         # 리뷰 노트 (SKILL_REVIEW.md)
+└── (FirstAuthor)(Year)_(Journal).md                 # 리뷰 노트 (SKILL_REVIEW.md)
 en/articles/
-└── (FirstAuthor)(Year)_(Journal).md         # 영어 번역 (원저만)
+└── (FirstAuthor)(Year)_(Journal).md                 # 영어 번역 (원저만)
 ```
+
+**Companion 파일 처리 요약**:
+- Supplement(`-sm`)와 News/Comment(`-news`)는 PDF 파일명에 접미사를 추가하여 표시
+- Extract 텍스트는 원 논문의 extract 파일(`notes/{stem}_extracted.txt`)에 병합
+- 독립형 뉴스(News Highlights, Market Reports 등)는 `(Journal)(Year)-news-(Keyword).pdf` 형식으로 별도 관리
 
 각 MD 파일의 최종 구조:
 ```
