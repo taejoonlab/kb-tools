@@ -58,6 +58,7 @@ done
 **LLM 처리 지시**:
 - `tags: [{태그}]` — 태그 입력 필수 (예: `2026-07-CINDELA`)
 - `extract: {YYYY-MM-DD}` — 오늘 날짜
+- `log:` — `"{YYYY-MM-DD} · create · {Model} ({Tool})"` 항목으로 시작 (이후 수정 시 append; 상세는 `SKILL.md` "log 필수" 참조)
 - 읽은 추출 텍스트 기반으로 각 섹션의 TODO를 상세 요약으로 대체
 
 ### Phase 2: MD 내용 생성 (LLM에 요청)
@@ -72,6 +73,8 @@ done
 tags: [YYYY-MM]
 extract: YYYY-MM-DD
 extract_file: extract/YYYY-MM-DD_pNN.txt
+log:
+  - "YYYY-MM-DD · create · <Model> (<Tool>)"
 ---
 
 # 논문 전체 제목
