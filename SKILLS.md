@@ -12,6 +12,7 @@
 | 수업 참고 논문 PDF 1개 처리 | [SKILL_CLASS.md](SKILL_CLASS.md) | `process_pdf_class.py` |
 | PDF 수십~수백 개 일괄 처리 | [SKILL_MONTHLY.md](SKILL_MONTHLY.md) | `batch_process_pdfs.py` |
 | 완성된 노트를 GitHub Wiki에 게시 | [SKILL_WIKI.md](SKILL_WIKI.md) | (git 수동) |
+| raw-data accession 기록 + RawDataAvailable 태그 (모든 노트 타입 공통) | [SKILL_RAWDATA.md](SKILL_RAWDATA.md) | `scan_accessions.py` |
 
 ## 노트 타입별 MD 섹션 비교
 
@@ -27,10 +28,14 @@
 | Key Points | — | — | — | ✅ |
 | Significance in Intro Context | — | — | ✅ | — |
 | Perspective | ✅ | ✅ | — | — |
+| Data Availability (raw-data accession) | ⬚ | ⬚ | — | — |
 | Significance | — | — | — | ✅ |
 | Key References (DOI 링크) | — | ✅ | ✅ | — |
 | Future Research Directions | — | — | ✅ | — |
 | Related Research | — | — | — | ✅ |
+
+> ⬚ = raw-data accession이 본문에 있을 때만 추가하는 선택 섹션. 자가 기탁(self) 데이터가 있으면
+> `RawDataAvailable` 태그 + `raw_data:` frontmatter도 부여. 규약: [SKILL_RAWDATA.md](SKILL_RAWDATA.md).
 
 ## 파일명 형식
 

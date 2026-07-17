@@ -5,7 +5,8 @@ input:    PDF 파일 경로 ({lang}/pdf/*-review.pdf)
 output:   {lang}/reviews/{Author}{Year}_{Journal}.md  (-review 접미사 제거)
           {lang}/pdf/notes/{stem}_extracted.txt
 script:   process_pdf.py --no-rename --output-dir {lang}/reviews/
-related:  SKILL.md (원저 연구), SKILL_CLASS.md (수업용), SKILL_MONTHLY.md (대량 처리)
+related:  SKILL.md (원저 연구), SKILL_CLASS.md (수업용), SKILL_MONTHLY.md (대량 처리),
+          SKILL_RAWDATA.md (raw-data accession / RawDataAvailable 태그)
 -->
 
 # PDF → Obsidian Review MD Workflow
@@ -112,6 +113,11 @@ log:
  형식: - 저자 (연도) 제목. *저널* 권:쪽. [doi:xxx](URL)
  5~15개 선별, DOI 링크 필수)
 ```
+
+**Data Availability (선택)**: 추출 텍스트에 raw-data accession이 있으면 `## Data Availability` /
+`## 데이터 이용 가능성` 섹션을 **Key References 앞**에 추가한다. 리뷰는 대개 외부 데이터셋을 종합하므로
+**cited-only**(인용 항목만, `RawDataAvailable` 태그·`raw_data:` frontmatter 없음)인 경우가 많다.
+리뷰 자신이 새 데이터를 기탁했다면 self 항목과 태그를 부여한다. 형식·판정은 **`SKILL_RAWDATA.md`** 참조.
 
 **각 섹션 작성 지침**:
 
