@@ -294,3 +294,16 @@ extract/                                             # 통합 추출 텍스트 (
 - **2개 언어 디렉토리**: MD 노트는 `{lang}/articles/`에 생성 (en/ko bilingual mirror)
 - `process_pdf.py`의 자동 추천 이름은 **참고용**으로만 사용하고, 최종 파일명은 사람이 직접 결정
 - **bilingual mirror 필수**: 원저 연구는 항상 `ko/articles/`와 `en/articles/` 쌍으로 생성
+
+## 품질 검증 (Metadata/Content QA) — 2026-07 kb-taejoon 감사에서 도출
+
+파이프라인(예: GLM-5.1/opencode-go)이 생성한 노트에서 반복적으로 발견되는 메타데이터·본문 오류. 배치 처리 후 반드시 아래를 점검한다.
+
+- **파일명 저자 = given name 오기**: citation의 `## Citation (NLM)` 제1저자 **성(surname)**이 정답. 예) "Lu Chih-Hao"인데 파일명 `Chih...`, "van de Kooij Bert"인데 `Bert...`. 복합 성은 소문자 결합(`vandeKooij`, `diLillo`, `deMenezes`).
+- **placeholder 저자**: `ATCC`, `Unknown`, `Authors`, `This`, 저널명(`Nature`), 국가명 등 → citation에서 실제 저자로 rename.
+- **연도 오류**: citation 연도가 정답이며 DOI 슬러그(`10.1038/s41586-026`=2026)로 교차 확인. 단 DOI가 오추출일 수 있으니 citation과 충돌 시 보류.
+- **BROKEN_CIT**: citation이 `AUTHORS_PLACEHOLDER`거나 제목이 PDF 헤더 잡음("SCIE N C E A D V A NCES") → Crossref(`api.crossref.org/works/<DOI>` 또는 `?query.bibliographic=`)로 제목·citation·DOI 복구.
+- **BODY_CORRUPT**: 제목/citation과 본문(Methods/Results)이 서로 다른 논문. **"citation=정답" 가정 금지** — 파일명+키워드+본문 다수결로 어느 쪽이 오염인지 판단(citation이 오염인 경우도 있음).
+- **DOI가 다른 논문을 가리킴**: 중복/오염 노트에서 DOI가 실제와 다른 논문으로 연결될 수 있음 → 제목으로 Crossref 재조회해 실제 DOI 확정.
+- **저널 토큰 정리(DOI 기준)**: DOI 접두사 → 표준 토큰 매핑(`doi_journal_map.json`)으로 파일명 저널 토큰 대조. 주의: coarse 접두사가 자매지를 병합함(`10.1093/nar`가 NAR Cancer=`narcan`/NAR Genom Bioinform=`nargab`까지, `10.1016/j.stem`이 Stem Cell Reports=`j.stemcr`까지). longest-prefix 우선 + 자매지 override 필요. 동일 저널 약어 변형만 자동 수정, 교차 저널은 citation로 개별 확인, 프리프린트(bioRxiv)·의도적 접미사(`Nature-Cas12a2`)는 제외.
+- 참조 구현: kb-taejoon 리포의 `scripts/fix_journal_tokens.py`(+`scripts/journal_overrides.json`), `scripts/tag_needreview.py`. 자동 해결 불가 노트는 `Need4Review` 태그로 검토 큐 관리.
