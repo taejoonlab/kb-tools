@@ -71,6 +71,7 @@ done
 ---
 tags: [YYYY-MM]
 extract: YYYY-MM-DD
+extract_file: extract/YYYY-MM-DD_pNN.txt
 ---
 
 # 논문 전체 제목
@@ -154,11 +155,18 @@ commit 메시지 형식: `add: ko review {Author}{Year}_{Journal}`
 ```
 ko/pdf/
 └── Author2024_Journal-review.pdf       # 원본 PDF (gitignore)
+ko/pdf/done/review/
+└── Author2024_Journal_Keyword.pdf      # 노트 완료 후 이동 (노트 stem 이름, gitignore)
 ko/pdf/notes/
 └── Author2024_Journal-review_extracted.txt  # 추출 텍스트 (gitignore)
 ko/reviews/
-└── Author2024_Journal.md               # 최종 리뷰 노트 (tracked)
+└── Author2024_Journal_Keyword.md       # 최종 리뷰 노트 (tracked)
+extract/
+└── (YYYY-MM-DD)_pNN.txt                # 통합 추출 텍스트, 앵커 ===== <note-stem> ===== (tracked)
 ```
+
+- frontmatter에 `extract_file`을 기록해 노트↔추출 텍스트를 연결한다(SKILL.md "extract_file 필수" 참조).
+- 노트 작성 후 리뷰 PDF는 `{lang}/pdf/done/review/`로 옮기고 노트 stem 이름으로 rename한다.
 
 최종 MD 파일 구조:
 ```
