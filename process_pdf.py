@@ -6,7 +6,7 @@ PDF -> Obsidian MD 변환 워크플로우 자동화 스크립트
   python3 process_pdf.py /path/to/paper.pdf [--dry-run] [--no-rename] [--output-dir DIR] [--force-review]
 
 기능:
-  1. PyMuPDF로 텍스트 추출 (pymupdf, max 30 pages)
+  1. PyMuPDF로 텍스트 추출 (pymupdf, max 30 pages, 항상 SIGALRM 타임아웃 적용)
   2. DOI -> CrossRef API로 저자명, DOI prefix map으로 저널명 검색
   3. 리뷰 논문 자동 판별 (파일명 -review 접미사 또는 본문 키워드)
   4. (FirstAuthor)(Year)_(Journal)[-review].pdf 형식으로 이름 변경
@@ -74,12 +74,41 @@ def _load_journal_map() -> tuple:
 DOI_PREFIX_MAP, KNOWN_JOURNALS = _load_journal_map()
 
 
-def extract_text(pdf_path: str, max_pages: int = 30) -> str:
-    doc = fitz.open(pdf_path)
-    text = ""
-    for page in doc[:max_pages]:
-        text += page.get_text()
-    return text
+def extract_text(pdf_path: str, max_pages: int = 30, timeout: int = 120) -> str:
+    """Extract text from up to ``max_pages`` of a PDF.
+
+    Extraction ALWAYS runs under a SIGALRM timeout (``timeout`` seconds) so a
+    malformed or very large PDF cannot hang the caller — this protects code that
+    imports and calls ``extract_text`` directly, not just ``main()``. Raises
+    ``ProcessingTimeout`` if the limit is exceeded. When not running in the main
+    thread (e.g. inside a worker thread where SIGALRM is unavailable) the timeout
+    is skipped gracefully. A pre-existing outer alarm is saved and restored so
+    ``main()``'s own timeout still applies to the rest of its work.
+    """
+    use_alarm = False
+    prev_handler = None
+    prev_remaining = 0
+    try:
+        import threading
+        if threading.current_thread() is threading.main_thread() and hasattr(signal, "SIGALRM"):
+            prev_handler = signal.signal(signal.SIGALRM, _timeout_handler)
+            prev_remaining = signal.alarm(max(1, int(timeout)))
+            use_alarm = True
+    except (ValueError, AttributeError, RuntimeError):
+        use_alarm = False
+    try:
+        doc = fitz.open(pdf_path)
+        text = ""
+        for page in doc[:max_pages]:
+            text += page.get_text()
+        return text
+    finally:
+        if use_alarm:
+            signal.alarm(0)
+            if prev_handler is not None:
+                signal.signal(signal.SIGALRM, prev_handler)
+            if prev_remaining > 0:
+                signal.alarm(prev_remaining)
 
 
 def extract_doi(text: str) -> Optional[str]:

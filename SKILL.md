@@ -63,6 +63,12 @@ python3 process_pdf.py <pdf_path> [--dry-run]
 - `notes/`에 추출 텍스트 파일 + MD 스켈레톤 생성
 - `notes/00_processing_log.md`에 진행 기록
 
+> **타임아웃**: `extract_text(pdf_path, max_pages=30, timeout=120)`은 **항상** SIGALRM 타임아웃
+> (기본 120초)을 적용한다. `process_pdf.py`를 CLI로 쓰든, `extract_text()`를 직접 import해서
+> 쓰든 손상·초대형 PDF에서 무한 대기하지 않고 `ProcessingTimeout`을 던진다. 배치 스크립트에서
+> 직접 호출할 때도 별도 alarm을 걸 필요 없이 `try/except ProcessingTimeout`로 개별 PDF를 건너뛰면
+> 된다. (메인 스레드가 아니면 SIGALRM 미지원이라 타임아웃은 자동 생략된다.)
+
 > **⚠️ 주의**: `process_pdf.py`의 저자·저널 자동 추출은 **자주 실패**한다.
 > - 저자 추출: PDF별 author format 편차 커서 `Unknown`으로 떨어지는 경우 많음
 > - 저널 추출: 내장 저널 매핑 테이블이 매우 제한적 → mismatch 빈번
@@ -171,7 +177,8 @@ done
 ### 배치 처리 (deprecated)
 > **⚠️ 배치 처리 권장하지 않음.** 아래 이유로 PDF는 1개씩 수동 처리할 것:
 > 1. 이름 충돌: 동일 target name → silent overwrite
-> 2. 타임아웃: 대용량 PDF(17+ page, 고해상도 이미지)는 extract_text()에서 수 분 소요 가능
+> 2. 타임아웃: 대용량 PDF(17+ page, 고해상도 이미지)는 extract_text()에서 오래 걸릴 수 있음 —
+>    `extract_text`가 기본 120초에서 `ProcessingTimeout`을 던지므로, 배치에서는 이를 잡아 개별 PDF를 건너뛴다
 > 3. 저자/저널 오검출: batch로 처리하면 검증 누락 → `Unknown` 이름 그대로 남음
 >
 > 부득이 배치가 필요하다면 dry-run을 먼저 수행하고 로그에서 충돌 확인:
@@ -283,7 +290,7 @@ extract/                                             # 통합 추출 텍스트 (
 - **리뷰 구분**: 리뷰 논문은 `-review.pdf` 접미사, `ko/reviews/`에 별도 생성 (`SKILL_REVIEW.md` 참조)
 - **저자 추출 한계**: PDF별 author format 편차 큼 → 반드시 DOI로 논문 조회 후 직접 확인
 - **저널 매핑 한계**: `process_pdf.py`의 저널 prefix 매핑은 주요 저널 위주로만 되어 있음 (Science → Development 등 오류 발생). DOI prefix 확인 후 수동 보정 필요
-- **대용량 PDF 타임아웃**: 15+ 페이지 PDF는 텍스트 추출에 수 분 소요 → extract_text()에 페이지 제한 고려
+- **대용량 PDF 타임아웃**: `extract_text(pdf_path, max_pages=30, timeout=120)`은 항상 SIGALRM 타임아웃(기본 120초)을 적용해 손상·초대형 PDF에서 무한 대기하지 않고 `ProcessingTimeout`을 던진다. 필요 시 `timeout`/`max_pages` 인자로 조정
 - **2개 언어 디렉토리**: MD 노트는 `{lang}/articles/`에 생성 (en/ko bilingual mirror)
 - `process_pdf.py`의 자동 추천 이름은 **참고용**으로만 사용하고, 최종 파일명은 사람이 직접 결정
 - **bilingual mirror 필수**: 원저 연구는 항상 `ko/articles/`와 `en/articles/` 쌍으로 생성
