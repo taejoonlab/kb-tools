@@ -157,7 +157,7 @@ git add ko/reviews/ && git commit -m "add: ko review Author2024_Journal"
 git push origin main
 ```
 
-commit 메시지 형식: `add: ko review {Author}{Year}_{Journal}`
+commit 메시지 형식: `add: ko review {Author}{Year}_{Journal}_{Keyword}`
 
 ## 파일 구조
 
@@ -176,6 +176,8 @@ extract/
 
 - frontmatter에 `extract_file`을 기록해 노트↔추출 텍스트를 연결한다(SKILL.md "extract_file 필수" 참조).
 - 노트 작성 후 리뷰 PDF는 `{lang}/pdf/done/review/`로 옮기고 노트 stem 이름으로 rename한다.
+
+**파일명**: MD 파일명에 `_(Keyword)` 주제 접미사는 **필수**다(여러 단어는 `+`로 연결, 예 `Correia2023_Biomaterials_Nanotechnology+HairFollicleRegeneration`). 원저(SKILL.md)와 동일한 규칙을 적용하며, PDF의 `-review` 접미사는 MD 파일명에는 포함하지 않는다.
 
 최종 MD 파일 구조:
 ```

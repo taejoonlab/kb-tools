@@ -41,12 +41,14 @@
 
 | 타입 | PDF 파일명 | MD 파일명 | 출력 위치 |
 |------|----------|---------|---------|
-| ARTICLE | `Author2024_Journal.pdf` | `Author2024_Journal.md` | `{lang}/articles/` |
-| REVIEW | `Author2024_Journal-review.pdf` | `Author2024_Journal.md` | `{lang}/reviews/` |
+| ARTICLE | `Author2024_Journal_Keyword.pdf` | `Author2024_Journal_Keyword.md` | `{lang}/articles/` |
+| REVIEW | `Author2024_Journal-review.pdf` | `Author2024_Journal_Keyword.md` | `{lang}/reviews/` |
 | CLASS | `Author2024_Journal_Keyword.pdf` | `Author2024_Journal_Keyword.md` | `{lang}/{category}/` |
 | NEWS | `Journal2024-news-Keyword.pdf` | `Journal2024-news-Keyword.md` | `{lang}/news/` |
 | Supplement | `Author2024_Journal-sm.pdf` | — (extract만 병합) | — |
 | Companion | `Author2024_Journal-news.pdf` | — (extract만 병합) | — |
+
+> `_Keyword`(MD 파일명) 접미사는 **모든 타입 필수**(여러 단어는 `+`로 연결). 상세 규칙은 [SKILL.md](SKILL.md) 참조.
 
 ## 논문 타입 판단 기준
 

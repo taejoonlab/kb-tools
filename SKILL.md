@@ -267,7 +267,7 @@ extract/                                             # 통합 추출 텍스트 (
 └── (YYYY-MM-DD)_pNN.txt                             # 날짜별, ~2MB 단위 분할
 ```
 
-**파일명**: `_(Keyword)` 주제 접미사를 붙이는 것을 권장한다(여러 단어는 `+`로 연결, 예 `Anderson2016_Nature_SCI+Mouse+Astrocytes`). 저널은 표준 약어 사용.
+**파일명**: `_(Keyword)` 주제 접미사는 **필수**다(여러 단어는 `+`로 연결, 예 `Anderson2016_Nature_SCI+Mouse+Astrocytes`). 원저·리뷰·수업·뉴스 모든 타입의 MD 파일명에 동일하게 적용한다. 저널은 표준 약어 사용.
 
 **추출 텍스트 통합·분할**:
 - 노트를 작성한 논문들의 추출 텍스트를 날짜별 `extract/YYYY-MM-DD.txt` 하나로 통합한다(git tracked).
