@@ -9,6 +9,7 @@
 |------|-----------|---------|
 | 원저 연구 PDF 1개 처리 | [SKILL.md](SKILL.md) | `process_pdf.py` |
 | 리뷰 논문 PDF 1개 처리 | [SKILL_REVIEW.md](SKILL_REVIEW.md) | `process_pdf.py` |
+| 방법 프로토콜 PDF 1개 처리 | [SKILL_PROTOCOL.md](SKILL_PROTOCOL.md) | `process_pdf.py` |
 | 수업 참고 논문 PDF 1개 처리 | [SKILL_CLASS.md](SKILL_CLASS.md) | `process_pdf_class.py` |
 | PDF 수십~수백 개 일괄 처리 | [SKILL_MONTHLY.md](SKILL_MONTHLY.md) | `batch_process_pdfs.py` |
 | 완성된 노트를 GitHub Wiki에 게시 | [SKILL_WIKI.md](SKILL_WIKI.md) | (git 수동) |
@@ -43,6 +44,7 @@
 |------|----------|---------|---------|
 | ARTICLE | `Author2024_Journal_Keyword.pdf` | `Author2024_Journal_Keyword.md` | `{lang}/articles/` |
 | REVIEW | `Author2024_Journal-review.pdf` | `Author2024_Journal_Keyword.md` | `{lang}/reviews/` |
+| PROTOCOL | `Author2024_Journal-protocol.pdf` | `Author2024_Journal_Keyword.md` | `{lang}/protocols/` |
 | CLASS | `Author2024_Journal_Keyword.pdf` | `Author2024_Journal_Keyword.md` | `{lang}/{category}/` |
 | NEWS | `Journal2024-news-Keyword.pdf` | `Journal2024-news-Keyword.md` | `{lang}/news/` |
 | Supplement | `Author2024_Journal-sm.pdf` | — (extract만 병합) | — |
@@ -56,6 +58,10 @@
 리뷰 논문 (SKILL_REVIEW.md)
   → 제목·초록에 "Review Article", "VIEWPOINT", "Minireview" 명시
   → 기존 문헌을 종합·분석하는 논문
+
+방법 프로토콜 (SKILL_PROTOCOL.md)
+  → 프로토콜 전문지(Nature Protocols·STAR Protocols·Methods in Molecular Biology·
+    Current Protocols·Bio-protocol·JoVE 등) 또는 절차(step-by-step / Timing / Troubleshooting) 중심 how-to 논문
 
 수업 참고 논문 (SKILL_CLASS.md)
   → 수업(BME333/BIO333 등)에서 직접 읽히는 논문
@@ -80,7 +86,7 @@
 
 [Phase 2 - LLM] 추출된 텍스트 → 상세 MD 노트 생성 (지능적)
    Task agent가 ko/pdf/notes/*_extracted.txt 읽고
-   → ko/articles/ (또는 reviews/, news/)에 MD 작성
+   → ko/articles/ (또는 reviews/, protocols/, news/)에 MD 작성
    → tags, extract date 포함
 ```
 

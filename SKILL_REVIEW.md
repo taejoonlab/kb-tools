@@ -5,8 +5,8 @@ input:    PDF 파일 경로 ({lang}/pdf/*-review.pdf)
 output:   {lang}/reviews/{Author}{Year}_{Journal}.md  (-review 접미사 제거)
           {lang}/pdf/notes/{stem}_extracted.txt
 script:   process_pdf.py --no-rename --output-dir {lang}/reviews/
-related:  SKILL.md (원저 연구), SKILL_CLASS.md (수업용), SKILL_MONTHLY.md (대량 처리),
-          SKILL_RAWDATA.md (raw-data accession / RawDataAvailable 태그)
+related:  SKILL.md (원저 연구), SKILL_PROTOCOL.md (방법 프로토콜), SKILL_CLASS.md (수업용),
+          SKILL_MONTHLY.md (대량 처리), SKILL_RAWDATA.md (raw-data accession / RawDataAvailable 태그)
 -->
 
 # PDF → Obsidian Review MD Workflow

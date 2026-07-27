@@ -4,8 +4,8 @@ input:    PDF 파일 경로 ({lang}/pdf/*.pdf, -review 접미사 없는 것)
 output:   {lang}/articles/{Author}{Year}_{Journal}.md
           {lang}/pdf/notes/{stem}_extracted.txt
 script:   process_pdf.py
-related:  SKILL_REVIEW.md (리뷰 논문), SKILL_CLASS.md (수업용), SKILL_MONTHLY.md (대량 처리),
-          SKILL_RAWDATA.md (raw-data accession / RawDataAvailable 태그)
+related:  SKILL_REVIEW.md (리뷰 논문), SKILL_PROTOCOL.md (방법 프로토콜), SKILL_CLASS.md (수업용),
+          SKILL_MONTHLY.md (대량 처리), SKILL_RAWDATA.md (raw-data accession / RawDataAvailable 태그)
 -->
 
 # PDF → Obsidian MD Workflow
@@ -20,17 +20,20 @@ pip install pymupdf
 
 ## 사용법
 
-### Step 0: PDF 분류 (리뷰 vs 연구)
-PDF를 **리뷰 논문**과 **원저 연구**로 분류한다.
+### Step 0: PDF 분류 (연구 vs 리뷰 vs 프로토콜)
+PDF를 **원저 연구**·**리뷰 논문**·**방법 프로토콜**로 분류한다.
 
 | 구분 | 파일명 접미사 | MD 노트 위치 | 스킬 |
 |------|-------------|-------------|------|
 | 원저 연구 | `(FirstAuthor)(Year)_(Journal).pdf` | `ko/articles/` | `SKILL.md` |
 | 리뷰 논문 | `(FirstAuthor)(Year)_(Journal)**-review**.pdf` | `ko/reviews/` | `SKILL_REVIEW.md` |
+| 방법 프로토콜 | `(FirstAuthor)(Year)_(Journal)**-protocol**.pdf` | `ko/protocols/` | `SKILL_PROTOCOL.md` |
 
 **리뷰 판별 기준**: 제목·초록에 "review" 명시, "VIEWPOINT" 등 opinion 형식, 기존 문헌 종합·분석 논문
+**프로토콜 판별 기준**: 프로토콜 전문지(Nature Protocols·STAR Protocols·Methods in Molecular Biology·
+Current Protocols·Bio-protocol·JoVE 등) 게재본, 또는 절차(step-by-step / Timing / Troubleshooting) 중심 how-to 논문
 
-> 리뷰 논문 처리는 **`SKILL_REVIEW.md`** 참조
+> 리뷰 논문 처리는 **`SKILL_REVIEW.md`**, 방법 프로토콜 처리는 **`SKILL_PROTOCOL.md`** 참조
 
 ### Companion Files: Supplement (-sm) / News (-news)
 
